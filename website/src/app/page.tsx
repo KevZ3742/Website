@@ -63,11 +63,14 @@ export default function Home() {
 
   // load persisted settings
   useEffect(() => {
-    setMounted(true);
-    try {
-      const saved = localStorage.getItem("hpSettings");
-      if (saved) setSettings(JSON.parse(saved));
-    } catch {}
+    const init = () => {
+      try {
+        const saved = localStorage.getItem("hpSettings");
+        if (saved) setSettings(JSON.parse(saved));
+      } catch {}
+      setMounted(true);
+    };
+    init();
   }, []);
 
   const saveSettings = (s: Settings) => {
@@ -83,7 +86,7 @@ export default function Home() {
 
   // weather via geolocation → open-meteo (no API key)
   useEffect(() => {
-    if (!navigator.geolocation) { setWeatherErr(true); return; }
+    if (!navigator.geolocation) { setTimeout(() => setWeatherErr(true), 0); return; }
     navigator.geolocation.getCurrentPosition(
       async ({ coords: { latitude: lat, longitude: lon } }) => {
         try {
