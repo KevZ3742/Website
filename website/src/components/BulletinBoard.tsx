@@ -221,7 +221,7 @@ function DrawCanvas({ strokes, tool, color, brushSize, eraserSize, active, onStr
 // ── Widget card ───────────────────────────────────────────────────────────────
 
 const WIDGET_LABELS: Record<WidgetKind, string> = {
-  note: "note", todo: "tasks", bookmark: "link", clock: "clock", weather: "weather",
+  note: "note", todo: "tasks", bookmark: "bookmark", clock: "clock", weather: "weather",
 };
 
 interface WidgetCardProps {

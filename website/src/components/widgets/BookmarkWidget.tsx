@@ -30,8 +30,12 @@ export function BookmarkWidget({ data, onChange }: BookmarkWidgetProps) {
 
   return (
     <div className="flex flex-col gap-1 h-full justify-center" onPointerDown={e => e.stopPropagation()}>
-      <a href={url} target="_blank" rel="noreferrer" className="text-[13px] text-green hover:underline font-mono truncate">
-        {label || url}
+      <a
+        href={/^https?:\/\//i.test(url) ? url : `https://${url}`}
+        target="_blank"
+        rel="noreferrer"
+        className="text-[13px] text-green hover:underline font-mono truncate"
+      >{label || url}
       </a>
       <span className="text-[9px] text-muted truncate">{url}</span>
       <button onClick={() => setEditing(true)} className="text-[9px] text-muted hover:text-tx transition-colors self-start mt-1">
