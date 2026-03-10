@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -164,7 +164,7 @@ const QUICK_LINKS = [
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [now, setNow]                   = useState(new Date());
+  const [now, setNow]                   = useState<Date | null>(null);
   const [weather, setWeather]           = useState<WeatherData | null>(null);
   const [weatherErr, setWeatherErr]     = useState(false);
   const [query, setQuery]               = useState("");
@@ -177,7 +177,7 @@ export default function Home() {
   const inputRef    = useRef<HTMLInputElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
-  const allThemes   = [...BUILTIN_THEMES, ...customThemes];
+  const allThemes = useMemo(() => [...BUILTIN_THEMES, ...customThemes], [customThemes]);
   const activeTheme = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
 
   // Apply theme on change
@@ -195,6 +195,7 @@ export default function Home() {
 
   // Clock
   useEffect(() => {
+    setNow(new Date()); // set initial value client-side only
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
@@ -293,11 +294,11 @@ export default function Home() {
     saveSettings({ ...settings, tempUnit: settings.tempUnit === "F" ? "C" : "F" });
 
   const pad = (n: number) => String(n).padStart(2,"0");
-  const h  = settings.timeFormat === "24h" ? pad(now.getHours()) : String(now.getHours()%12||12);
-  const m  = pad(now.getMinutes());
-  const s  = pad(now.getSeconds());
-  const ap = now.getHours() >= 12 ? "PM" : "AM";
-  const tz = now.toLocaleDateString("en-US",{timeZoneName:"short"}).split(",")[1]?.trim().split(" ").pop()??"";
+  const h  = now ? (settings.timeFormat === "24h" ? pad(now.getHours()) : String(now.getHours() % 12 || 12)) : "--";
+  const m  = now ? pad(now.getMinutes()) : "--";
+  const s  = now ? pad(now.getSeconds()) : "--";
+  const ap = now ? (now.getHours() >= 12 ? "PM" : "AM") : "";
+  const tz = now ? now.toLocaleDateString("en-US", { timeZoneName: "short" }).split(",")[1]?.trim().split(" ").pop() ?? "" : "";
 
   // Group themes by category for the dropdown
   const categories = allThemes.reduce<Record<string, ThemeEntry[]>>((acc, t) => {
@@ -405,11 +406,11 @@ export default function Home() {
               {h}<span className="text-dim mx-0.5">:</span>
               {m}<span className="text-dim mx-0.5">:</span>
               <span className="text-muted">{s}</span>
-              {settings.timeFormat==="12h" && (
+              {settings.timeFormat === "12h" && now && (
                 <span className="text-muted ml-2" style={{fontSize:"0.35em"}}>{ap}</span>
               )}
             </div>
-            <div className="mt-1.5 text-[11px] text-muted tracking-[0.12em] uppercase">{formatDate(now)}</div>
+            <div className="mt-1.5 ...">{now ? formatDate(now) : ""}</div>
           </div>
 
           <div className="w-full max-w-140">
