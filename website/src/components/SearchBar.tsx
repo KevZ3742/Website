@@ -5,10 +5,26 @@ interface SearchBarProps {
   searchEngine: Settings["searchEngine"];
 }
 
+function resolveInput(q: string, searchEngine: Settings["searchEngine"]): string {
+  // Already has a protocol — use as-is
+  if (/^https?:\/\//i.test(q)) return q;
+
+  // Looks like a bare hostname/URL: has a dot, no spaces, valid TLD
+  // Covers: google.com, sub.example.co.uk, example.com/path?q=1, localhost:3000
+  const looksLikeUrl =
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}(:\d+)?(\/\S*)?$/.test(q) ||
+    /^localhost(:\d+)?(\/\S*)?$/.test(q);
+
+  if (looksLikeUrl) return "https://" + q;
+
+  // Fall back to search
+  return SEARCH_URLS[searchEngine] + encodeURIComponent(q);
+}
+
 export function SearchBar({ searchEngine }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus on mount; also capture any keystroke that isn't in the input
+  // Auto-focus on mount; capture any keystroke not already in the input
   useEffect(() => {
     inputRef.current?.focus();
     const h = (e: KeyboardEvent) => {
@@ -24,7 +40,7 @@ export function SearchBar({ searchEngine }: SearchBarProps) {
     e.preventDefault();
     const q = (inputRef.current?.value ?? "").trim();
     if (!q) return;
-    window.location.href = SEARCH_URLS[searchEngine] + encodeURIComponent(q);
+    window.location.href = resolveInput(q, searchEngine);
   };
 
   return (
