@@ -17,7 +17,6 @@ const COLOR_LABELS: { key: keyof ThemeColors; label: string }[] = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Generate a unique forked name: "Nord (1)", "Nord (2)", etc. */
 function forkName(baseName: string, allThemes: ThemeEntry[]): string {
   const existing = new Set(allThemes.map(t => t.name));
   let i = 1;
@@ -25,7 +24,6 @@ function forkName(baseName: string, allThemes: ThemeEntry[]): string {
   return `${baseName} (${i})`;
 }
 
-/** Generate a unique slug from a display name for use as the theme `name` key. */
 function toSlug(display: string): string {
   return display.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
@@ -56,24 +54,15 @@ export function ThemeModal({
   const [renameValue, setRenameValue] = useState("");
   const renameRef = useRef<HTMLInputElement>(null);
 
-  // The colors currently being displayed (edited draft or saved entry)
   const selectedEntry  = themes.find(t => t.name === selected) ?? activeTheme;
   const displayColors  = editColors ?? selectedEntry.colors;
   const isCustom       = !!customThemes.find(t => t.name === selected);
   const isDirty        = editColors !== null;
 
-  // ── Live preview — apply draft colors to page; revert on close/discard ──────
-
+  // Live preview — apply draft or selected colors to page
   useEffect(() => {
     applyTheme(displayColors);
   }, [displayColors]);
-
-  // Revert to the saved theme colours when the modal unmounts
-  useEffect(() => {
-    const savedColors = selectedEntry.colors;
-    return () => applyTheme(savedColors);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -84,7 +73,6 @@ export function ThemeModal({
     onSelect(name);
   };
 
-  /** Called when a color swatch is clicked — fork immediately and open picker */
   const handleColorChange = useCallback((key: keyof ThemeColors, value: string) => {
     setEditColors(prev => ({
       ...(prev ?? selectedEntry.colors),
@@ -92,7 +80,6 @@ export function ThemeModal({
     }));
   }, [selectedEntry.colors]);
 
-  /** Save the current edit draft as a new custom theme */
   const handleSaveFork = () => {
     if (!editColors) return;
     const baseDisplay = selectedEntry.display;
@@ -110,17 +97,14 @@ export function ThemeModal({
     setEditColors(null);
   };
 
-  /** Discard edits */
   const handleDiscard = () => setEditColors(null);
 
-  /** Start renaming */
   const handleStartRename = () => {
     setRenameValue(selectedEntry.display);
     setIsRenaming(true);
     setTimeout(() => renameRef.current?.select(), 0);
   };
 
-  /** Commit rename */
   const handleCommitRename = () => {
     const trimmed = renameValue.trim();
     if (trimmed && trimmed !== selectedEntry.display) {
@@ -159,7 +143,7 @@ export function ThemeModal({
       {/* Body */}
       <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
 
-        {/* Theme selector row */}
+        {/* Theme selector */}
         <div>
           <label className="block text-[10px] text-muted tracking-[0.08em] mb-1.5">theme</label>
           <select
@@ -177,7 +161,7 @@ export function ThemeModal({
           </select>
         </div>
 
-        {/* Name row — rename for custom themes */}
+        {/* Name / rename row */}
         <div className="flex items-center justify-between gap-3">
           {isRenaming ? (
             <input
@@ -245,26 +229,14 @@ export function ThemeModal({
 
           {/* Swatch grid */}
           <div className="space-y-1.5">
-            {/* FG row */}
             <div className="flex gap-1.5">
               {(["f_high", "f_med", "f_low", "f_inv"] as (keyof ThemeColors)[]).map(k => (
-                <ColorSwatch
-                  key={k}
-                  colorKey={k}
-                  value={displayColors[k]}
-                  onChange={handleColorChange}
-                />
+                <ColorSwatch key={k} colorKey={k} value={displayColors[k]} onChange={handleColorChange} />
               ))}
             </div>
-            {/* BG row */}
             <div className="flex gap-1.5">
               {(["b_high", "b_med", "b_low", "b_inv"] as (keyof ThemeColors)[]).map(k => (
-                <ColorSwatch
-                  key={k}
-                  colorKey={k}
-                  value={displayColors[k]}
-                  onChange={handleColorChange}
-                />
+                <ColorSwatch key={k} colorKey={k} value={displayColors[k]} onChange={handleColorChange} />
               ))}
             </div>
           </div>
@@ -272,18 +244,12 @@ export function ThemeModal({
           {/* Hex list */}
           <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-x-3 gap-y-1.5">
             {COLOR_LABELS.map(({ key, label }) => (
-              <HexRow
-                key={key}
-                colorKey={key}
-                label={label}
-                value={displayColors[key]}
-                onChange={handleColorChange}
-              />
+              <HexRow key={key} colorKey={key} label={label} value={displayColors[key]} onChange={handleColorChange} />
             ))}
           </div>
         </div>
 
-        {/* Action row */}
+        {/* Actions */}
         <div className="flex gap-2">
           <button
             onClick={handleExport}
@@ -345,7 +311,6 @@ function ColorSwatch({
       <div className="text-[8px] text-muted text-center mt-0.5 tracking-wide group-hover:text-tx transition-colors">
         {colorKey.replace("_", "·")}
       </div>
-      {/* Hidden native color picker — triggered by clicking the swatch */}
       <input
         ref={pickerRef}
         type="color"
@@ -374,18 +339,16 @@ function HexRow({
 
   const commit = (raw: string) => {
     setEditing(false);
-    // Accept shorthand (#abc) or full (#aabbcc), with or without #
     const hex = raw.startsWith("#") ? raw : "#" + raw;
     if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
       onChange(colorKey, hex.toLowerCase());
     } else {
-      setInputValue(value); // revert bad input
+      setInputValue(value);
     }
   };
 
   return (
     <div className="flex items-center gap-1.5">
-      {/* Swatch — opens color picker */}
       <button
         onClick={() => pickerRef.current?.click()}
         className="w-3 h-3 border border-border shrink-0 hover:border-green transition-colors relative"
