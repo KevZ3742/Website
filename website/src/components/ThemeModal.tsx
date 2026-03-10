@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { generateSVG, downloadSVG, type ThemeColors, type ThemeEntry } from "../lib/themes";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { generateSVG, downloadSVG, applyTheme, type ThemeColors, type ThemeEntry } from "../lib/themes";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const COLOR_LABELS: { key: keyof ThemeColors; label: string }[] = [
   { key: "background", label: "Background" },
@@ -13,28 +15,123 @@ const COLOR_LABELS: { key: keyof ThemeColors; label: string }[] = [
   { key: "b_inv",      label: "Accent"     },
 ];
 
-interface ThemeModalProps {
-  themes:       ThemeEntry[];
-  categories:   Record<string, ThemeEntry[]>;
-  activeTheme:  ThemeEntry;
-  customThemes: ThemeEntry[];
-  onSelect:     (name: string) => void;
-  onDelete:     (name: string) => void;
-  onClose:      () => void;
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Generate a unique forked name: "Nord (1)", "Nord (2)", etc. */
+function forkName(baseName: string, allThemes: ThemeEntry[]): string {
+  const existing = new Set(allThemes.map(t => t.name));
+  let i = 1;
+  while (existing.has(`${baseName} (${i})`)) i++;
+  return `${baseName} (${i})`;
 }
 
-export function ThemeModal({
-  themes, categories, activeTheme, customThemes, onSelect, onDelete, onClose,
-}: ThemeModalProps) {
-  const [selected, setSelected] = useState(activeTheme.name);
-  const selectedEntry = themes.find(t => t.name === selected) ?? activeTheme;
-  const isCustom = !!customThemes.find(t => t.name === selected);
+/** Generate a unique slug from a display name for use as the theme `name` key. */
+function toSlug(display: string): string {
+  return display.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+}
 
-  const handleSelect = (name: string) => { setSelected(name); onSelect(name); };
+// ── Props ─────────────────────────────────────────────────────────────────────
+
+interface ThemeModalProps {
+  themes:           ThemeEntry[];
+  categories:       Record<string, ThemeEntry[]>;
+  activeTheme:      ThemeEntry;
+  customThemes:     ThemeEntry[];
+  onSelect:         (name: string) => void;
+  onSaveNew:        (entry: ThemeEntry) => void;
+  onRename:         (oldName: string, newDisplay: string) => void;
+  onDelete:         (name: string) => void;
+  onClose:          () => void;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export function ThemeModal({
+  themes, categories, activeTheme, customThemes,
+  onSelect, onSaveNew, onRename, onDelete, onClose,
+}: ThemeModalProps) {
+  const [selected,    setSelected]    = useState(activeTheme.name);
+  const [editColors,  setEditColors]  = useState<ThemeColors | null>(null);
+  const [isRenaming,  setIsRenaming]  = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const renameRef = useRef<HTMLInputElement>(null);
+
+  // The colors currently being displayed (edited draft or saved entry)
+  const selectedEntry  = themes.find(t => t.name === selected) ?? activeTheme;
+  const displayColors  = editColors ?? selectedEntry.colors;
+  const isCustom       = !!customThemes.find(t => t.name === selected);
+  const isDirty        = editColors !== null;
+
+  // ── Live preview — apply draft colors to page; revert on close/discard ──────
+
+  useEffect(() => {
+    applyTheme(displayColors);
+  }, [displayColors]);
+
+  // Revert to the saved theme colours when the modal unmounts
+  useEffect(() => {
+    const savedColors = selectedEntry.colors;
+    return () => applyTheme(savedColors);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleSelect = (name: string) => {
+    setSelected(name);
+    setEditColors(null);
+    setIsRenaming(false);
+    onSelect(name);
+  };
+
+  /** Called when a color swatch is clicked — fork immediately and open picker */
+  const handleColorChange = useCallback((key: keyof ThemeColors, value: string) => {
+    setEditColors(prev => ({
+      ...(prev ?? selectedEntry.colors),
+      [key]: value,
+    }));
+  }, [selectedEntry.colors]);
+
+  /** Save the current edit draft as a new custom theme */
+  const handleSaveFork = () => {
+    if (!editColors) return;
+    const baseDisplay = selectedEntry.display;
+    const newDisplay  = forkName(baseDisplay, themes);
+    const newName     = toSlug(newDisplay) + "-" + Date.now();
+    const entry: ThemeEntry = {
+      name:     newName,
+      display:  newDisplay,
+      category: "Custom",
+      colors:   editColors,
+      isCustom: true,
+    };
+    onSaveNew(entry);
+    setSelected(newName);
+    setEditColors(null);
+  };
+
+  /** Discard edits */
+  const handleDiscard = () => setEditColors(null);
+
+  /** Start renaming */
+  const handleStartRename = () => {
+    setRenameValue(selectedEntry.display);
+    setIsRenaming(true);
+    setTimeout(() => renameRef.current?.select(), 0);
+  };
+
+  /** Commit rename */
+  const handleCommitRename = () => {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== selectedEntry.display) {
+      onRename(selected, trimmed);
+    }
+    setIsRenaming(false);
+  };
 
   const handleExport = () => {
-    const svg = generateSVG(selectedEntry.name, selectedEntry.colors);
-    downloadSVG(`${selectedEntry.name}.svg`, svg);
+    const svg = generateSVG(selectedEntry.name, displayColors);
+    downloadSVG(`${selectedEntry.display}.svg`, svg);
   };
 
   const handleDelete = () => {
@@ -42,32 +139,29 @@ export function ThemeModal({
     onDelete(selected);
     setSelected("dark");
     onSelect("dark");
+    setEditColors(null);
   };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div
       className="bg-surface border border-border2 shadow-2xl font-mono flex flex-col"
-      style={{ width: 480, maxHeight: "80vh" }}
+      style={{ width: 520, maxHeight: "85vh" }}
       onMouseDown={e => e.stopPropagation()}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <span className="text-[11px] tracking-[0.15em] uppercase text-tx">Theme Selector</span>
+        <span className="text-[11px] tracking-[0.15em] uppercase text-tx">Theme Editor</span>
         <button onClick={onClose} className="text-muted hover:text-tx text-[18px] leading-none transition-colors">×</button>
       </div>
 
-      {/* Scrollable body */}
+      {/* Body */}
       <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
 
-        {/* Current label */}
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted tracking-[0.08em]">current</span>
-          <span className="text-[11px] text-tx">{selectedEntry.display}</span>
-        </div>
-
-        {/* Dropdown */}
+        {/* Theme selector row */}
         <div>
-          <label className="block text-[10px] text-muted tracking-[0.08em] mb-1.5">select theme</label>
+          <label className="block text-[10px] text-muted tracking-[0.08em] mb-1.5">theme</label>
           <select
             value={selected}
             onChange={e => handleSelect(e.target.value)}
@@ -83,7 +177,113 @@ export function ThemeModal({
           </select>
         </div>
 
-        {/* Actions */}
+        {/* Name row — rename for custom themes */}
+        <div className="flex items-center justify-between gap-3">
+          {isRenaming ? (
+            <input
+              ref={renameRef}
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              onBlur={handleCommitRename}
+              onKeyDown={e => {
+                if (e.key === "Enter") handleCommitRename();
+                if (e.key === "Escape") setIsRenaming(false);
+              }}
+              className="flex-1 bg-transparent border-b border-green text-[12px] text-tx outline-none font-mono pb-0.5"
+              autoFocus
+            />
+          ) : (
+            <span className="text-[12px] text-tx truncate">{selectedEntry.display}</span>
+          )}
+
+          {isCustom && !isRenaming && (
+            <button
+              onClick={handleStartRename}
+              className="text-[10px] text-muted border border-border2 px-2 py-0.5 hover:text-tx hover:border-muted transition-colors shrink-0"
+            >
+              rename
+            </button>
+          )}
+        </div>
+
+        {/* Dirty banner */}
+        {isDirty && (
+          <div className="flex items-center justify-between border border-dashed border-green px-3 py-2">
+            <span className="text-[10px] text-green tracking-[0.08em]">unsaved changes</span>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDiscard}
+                className="text-[10px] text-muted border border-border2 px-2.5 py-0.5 hover:text-tx hover:border-muted transition-colors"
+              >
+                discard
+              </button>
+              <button
+                onClick={handleSaveFork}
+                className="text-[10px] text-black bg-green border border-green px-2.5 py-0.5 hover:opacity-90 transition-opacity font-medium"
+              >
+                save as fork
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Colour editor */}
+        <div>
+          <label className="block text-[10px] text-muted tracking-[0.08em] mb-2">
+            colours <span className="text-dim">— click a swatch to edit</span>
+          </label>
+
+          {/* Preview strip */}
+          <div
+            className="w-full h-10 border border-border flex items-center justify-center mb-3 transition-colors"
+            style={{ background: displayColors.background }}
+          >
+            <span className="text-[9px] tracking-widest transition-colors" style={{ color: displayColors.f_high }}>
+              {selectedEntry.display}{isDirty ? " *" : ""}
+            </span>
+          </div>
+
+          {/* Swatch grid */}
+          <div className="space-y-1.5">
+            {/* FG row */}
+            <div className="flex gap-1.5">
+              {(["f_high", "f_med", "f_low", "f_inv"] as (keyof ThemeColors)[]).map(k => (
+                <ColorSwatch
+                  key={k}
+                  colorKey={k}
+                  value={displayColors[k]}
+                  onChange={handleColorChange}
+                />
+              ))}
+            </div>
+            {/* BG row */}
+            <div className="flex gap-1.5">
+              {(["b_high", "b_med", "b_low", "b_inv"] as (keyof ThemeColors)[]).map(k => (
+                <ColorSwatch
+                  key={k}
+                  colorKey={k}
+                  value={displayColors[k]}
+                  onChange={handleColorChange}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Hex list */}
+          <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-x-3 gap-y-1.5">
+            {COLOR_LABELS.map(({ key, label }) => (
+              <HexRow
+                key={key}
+                colorKey={key}
+                label={label}
+                value={displayColors[key]}
+                onChange={handleColorChange}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Action row */}
         <div className="flex gap-2">
           <button
             onClick={handleExport}
@@ -104,58 +304,6 @@ export function ThemeModal({
           </button>
         </div>
 
-        {/* Colour preview */}
-        <div>
-          <label className="block text-[10px] text-muted tracking-[0.08em] mb-2">colours</label>
-          <div className="border border-border p-4 space-y-2">
-            {/* Background strip */}
-            <div
-              className="w-full h-10 border border-border flex items-center justify-center mb-3"
-              style={{ background: selectedEntry.colors.background }}
-            >
-              <span className="text-[9px] tracking-widest" style={{ color: selectedEntry.colors.f_high }}>
-                {selectedEntry.display}
-              </span>
-            </div>
-
-            {/* FG row */}
-            <div className="flex gap-1.5">
-              {(["f_high", "f_med", "f_low", "f_inv"] as (keyof ThemeColors)[]).map(k => (
-                <div key={k} className="flex-1">
-                  <div className="w-full h-6 border border-border" style={{ background: selectedEntry.colors[k] }} />
-                  <div className="text-[8px] text-muted text-center mt-0.5 tracking-wide">
-                    {k.replace("_", "·")}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* BG row */}
-            <div className="flex gap-1.5">
-              {(["b_high", "b_med", "b_low", "b_inv"] as (keyof ThemeColors)[]).map(k => (
-                <div key={k} className="flex-1">
-                  <div className="w-full h-6 border border-border" style={{ background: selectedEntry.colors[k] }} />
-                  <div className="text-[8px] text-muted text-center mt-0.5 tracking-wide">
-                    {k.replace("_", "·")}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Hex grid */}
-            <div className="pt-2 border-t border-border grid grid-cols-3 gap-x-3 gap-y-1">
-              {COLOR_LABELS.map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 border border-border shrink-0"
-                    style={{ background: selectedEntry.colors[key] }} />
-                  <span className="text-[9px] text-muted truncate">{label}</span>
-                  <span className="text-[9px] text-dim ml-auto font-mono">{selectedEntry.colors[key]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
         {/* Drop hint */}
         <div className="border border-dashed border-border p-3 text-center">
           <p className="text-[10px] text-muted tracking-[0.08em]">
@@ -173,6 +321,109 @@ export function ThemeModal({
           done
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── ColorSwatch ───────────────────────────────────────────────────────────────
+
+function ColorSwatch({
+  colorKey, value, onChange,
+}: {
+  colorKey: keyof ThemeColors;
+  value:    string;
+  onChange: (key: keyof ThemeColors, value: string) => void;
+}) {
+  const pickerRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex-1 group relative cursor-pointer" onClick={() => pickerRef.current?.click()}>
+      <div
+        className="w-full h-8 border border-border group-hover:border-green transition-colors"
+        style={{ background: value }}
+      />
+      <div className="text-[8px] text-muted text-center mt-0.5 tracking-wide group-hover:text-tx transition-colors">
+        {colorKey.replace("_", "·")}
+      </div>
+      {/* Hidden native color picker — triggered by clicking the swatch */}
+      <input
+        ref={pickerRef}
+        type="color"
+        value={value}
+        onChange={e => onChange(colorKey, e.target.value)}
+        className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
+        tabIndex={-1}
+      />
+    </div>
+  );
+}
+
+// ── HexRow ────────────────────────────────────────────────────────────────────
+
+function HexRow({
+  colorKey, label, value, onChange,
+}: {
+  colorKey: keyof ThemeColors;
+  label:    string;
+  value:    string;
+  onChange: (key: keyof ThemeColors, value: string) => void;
+}) {
+  const [editing,    setEditing]    = useState(false);
+  const [inputValue, setInputValue] = useState(value);
+  const pickerRef = useRef<HTMLInputElement>(null);
+
+  const commit = (raw: string) => {
+    setEditing(false);
+    // Accept shorthand (#abc) or full (#aabbcc), with or without #
+    const hex = raw.startsWith("#") ? raw : "#" + raw;
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
+      onChange(colorKey, hex.toLowerCase());
+    } else {
+      setInputValue(value); // revert bad input
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {/* Swatch — opens color picker */}
+      <button
+        onClick={() => pickerRef.current?.click()}
+        className="w-3 h-3 border border-border shrink-0 hover:border-green transition-colors relative"
+        style={{ background: value }}
+        title="Pick colour"
+      >
+        <input
+          ref={pickerRef}
+          type="color"
+          value={value}
+          onChange={e => { onChange(colorKey, e.target.value); setInputValue(e.target.value); }}
+          className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
+          tabIndex={-1}
+        />
+      </button>
+      <span className="text-[9px] text-muted truncate w-14">{label}</span>
+      {editing ? (
+        <input
+          autoFocus
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onBlur={() => commit(inputValue)}
+          onKeyDown={e => {
+            if (e.key === "Enter") commit(inputValue);
+            if (e.key === "Escape") { setInputValue(value); setEditing(false); }
+          }}
+          className="ml-auto text-[9px] text-tx bg-transparent border-b border-green outline-none font-mono w-16 text-right"
+          spellCheck={false}
+        />
+      ) : (
+        <button
+          onClick={() => { setInputValue(value); setEditing(true); }}
+          className="ml-auto text-[9px] text-dim hover:text-tx font-mono transition-colors"
+          title="Edit hex"
+        >
+          {value}
+        </button>
+      )}
     </div>
   );
 }

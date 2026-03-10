@@ -22,12 +22,12 @@ export const SEARCH_URLS: Record<Settings["searchEngine"], string> = {
 };
 
 export const QUICK_LINKS = [
-  { label: "github",      href: "https://github.com" },
-  { label: "linear",      href: "https://linear.app" },
-  { label: "hacker news", href: "https://news.ycombinator.com" },
-  { label: "blog",        href: "/blog" },
-  { label: "tools",       href: "/tools" },
-  { label: "games",       href: "/games" },
+  { label: "resume",   href: "/resume"                        },
+  { label: "projects", href: "/projects"                      },
+  { label: "blog",     href: "/blog"                          },
+  { label: "tools",    href: "/tools"                         },
+  { label: "games",    href: "/games"                         },
+  { label: "github",   href: "https://github.com/KevZ3742"   },
 ];
 
 // ── localStorage helpers ──────────────────────────────────────────────────────

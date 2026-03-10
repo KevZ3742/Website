@@ -28,8 +28,15 @@ export function SearchBar({ searchEngine }: SearchBarProps) {
   useEffect(() => {
     inputRef.current?.focus();
     const h = (e: KeyboardEvent) => {
-      if (document.activeElement !== inputRef.current &&
-          e.key.length === 1 && !e.metaKey && !e.ctrlKey)
+      const active = document.activeElement;
+      const isTypingElsewhere =
+        active !== inputRef.current &&
+        (active instanceof HTMLInputElement ||
+         active instanceof HTMLTextAreaElement ||
+         active instanceof HTMLSelectElement ||
+         (active instanceof HTMLElement && active.isContentEditable));
+
+      if (!isTypingElsewhere && e.key.length === 1 && !e.metaKey && !e.ctrlKey)
         inputRef.current?.focus();
     };
     document.addEventListener("keydown", h);

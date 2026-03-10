@@ -99,6 +99,16 @@ export default function Home() {
             activeTheme={activeTheme}
             customThemes={customThemes}
             onSelect={(name) => saveSettings({ ...settings, themeName: name })}
+            onSaveNew={(entry) => {
+              saveCustomThemes([...customThemes, entry]);
+              saveSettings({ ...settings, themeName: entry.name });
+            }}
+            onRename={(oldName, newDisplay) => {
+              const updated = customThemes.map(t =>
+                t.name === oldName ? { ...t, display: newDisplay } : t
+              );
+              saveCustomThemes(updated);
+            }}
             onDelete={(name) => {
               const updated = customThemes.filter(t => t.name !== name);
               saveCustomThemes(updated);
