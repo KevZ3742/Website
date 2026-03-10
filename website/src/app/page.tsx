@@ -18,6 +18,7 @@ import { ClockDisplay }  from "../components/ClockDisplay";
 import { SearchBar }     from "../components/SearchBar";
 import { BottomBar }     from "../components/BottomBar";
 import { ThemeModal }    from "../components/ThemeModal";
+import { BulletinBoard } from "../components/BulletinBoard";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,7 @@ export default function Home() {
   const [customThemes, setCustomThemes] = useState<ThemeEntry[]>(loadCustomThemes);
   const [showSettings,     setShowSettings]     = useState(false);
   const [showThemeModal,   setShowThemeModal]   = useState(false);
+  const [collapsed,        setCollapsed]        = useState(false); // esc mode
 
   const allThemes   = useMemo(() => [...BUILTIN_THEMES, ...customThemes], [customThemes]);
   const activeTheme = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
@@ -57,12 +59,13 @@ export default function Home() {
     const h = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (showThemeModal) { setShowThemeModal(false); return; }
-        setShowSettings(false);
+        if (showSettings)   { setShowSettings(false);   return; }
+        setCollapsed(v => !v);
       }
     };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [showThemeModal]);
+  }, [showThemeModal, showSettings]);
 
   // ── Category map for ThemeModal dropdown ─────────────────────────────────────
 
@@ -119,19 +122,48 @@ export default function Home() {
         </div>
       )}
 
-      <div className="relative z-10 h-screen grid grid-rows-[40px_1fr_40px] font-mono">
+      <div className="relative z-10 h-screen flex flex-col font-mono">
         <TopBar
           settings={settings}
           activeTheme={activeTheme}
           showSettings={showSettings}
+          collapsed={collapsed}
           setShowSettings={setShowSettings}
           setShowThemeModal={setShowThemeModal}
+          onToggleCollapse={() => setCollapsed(v => !v)}
           saveSettings={saveSettings}
         />
 
-        <main className="flex flex-col items-center justify-center gap-10 px-8">
-          <ClockDisplay now={now} timeFormat={settings.timeFormat} />
-          <SearchBar searchEngine={settings.searchEngine} />
+        {/* Main content — slides between normal and board */}
+        <main className="flex-1 min-h-0 relative overflow-hidden">
+          {/* Normal view */}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-10 px-8 transition-all duration-300"
+            style={{
+              opacity:   collapsed ? 0 : 1,
+              transform: collapsed ? "translateY(-16px)" : "translateY(0)",
+              pointerEvents: collapsed ? "none" : "all",
+            }}
+          >
+            <ClockDisplay now={now} timeFormat={settings.timeFormat} />
+            <SearchBar searchEngine={settings.searchEngine} />
+          </div>
+
+          {/* Bulletin board view */}
+          <div
+            className="absolute inset-0 transition-all duration-300"
+            style={{
+              opacity:   collapsed ? 1 : 0,
+              transform: collapsed ? "translateY(0)" : "translateY(16px)",
+              pointerEvents: collapsed ? "all" : "none",
+            }}
+          >
+            <BulletinBoard
+              weather={weather}
+              timeFormat={settings.timeFormat}
+              tempUnit={settings.tempUnit}
+            />
+          </div>
         </main>
 
         <BottomBar
