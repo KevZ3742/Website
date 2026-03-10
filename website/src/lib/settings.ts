@@ -3,16 +3,17 @@ import type { ThemeEntry } from "./themes";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface Settings {
-  tempUnit:     "C" | "F";
-  timeFormat:   "24h" | "12h";
-  searchEngine: "google" | "ddg" | "bing";
-  themeName:    string;
+  tempUnit:        "C" | "F";
+  timeFormat:      "24h" | "12h";
+  searchEngine:    "google" | "ddg" | "bing";
+  themeName:       string;
+  weatherLocation: string; // empty string = use browser geolocation
 }
 
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 export const DEFAULT_SETTINGS: Settings = {
-  tempUnit: "F", timeFormat: "24h", searchEngine: "google", themeName: "dark",
+  tempUnit: "F", timeFormat: "24h", searchEngine: "google", themeName: "dark", weatherLocation: "",
 };
 
 export const SEARCH_URLS: Record<Settings["searchEngine"], string> = {

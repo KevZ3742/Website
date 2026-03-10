@@ -33,7 +33,7 @@ export default function Home() {
   const activeTheme = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
 
   const now                    = useClock();
-  const { weather, error: weatherErr } = useWeather();
+  const { weather, error: weatherErr } = useWeather(settings.weatherLocation);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
