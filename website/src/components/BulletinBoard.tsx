@@ -779,7 +779,7 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
       )}
 
       {/* ── Toolbar ── */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-[60] flex-wrap justify-center">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-60 flex-wrap justify-center">
 
         <div className="relative">
           <button onClick={()=>{setShowAddMenu(m=>!m);exitDrawMode();}}
