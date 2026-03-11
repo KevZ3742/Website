@@ -155,6 +155,57 @@ const RESIZE_CURSORS:Record<ResizeHandle,string>={
   n:"n-resize",s:"s-resize",e:"e-resize",w:"w-resize",
 };
 
+// ── ImportConfirmModal ────────────────────────────────────────────────────────
+
+interface ImportConfirmModalProps {
+  onConfirm: () => void;
+  onCancel:  () => void;
+}
+
+function ImportConfirmModal({ onConfirm, onCancel }: ImportConfirmModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.7)" }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div className="bg-surface border border-border2 shadow-2xl font-mono w-80">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+          <span className="text-[11px] tracking-[0.15em] uppercase text-tx">confirm import</span>
+          <button onClick={onCancel} className="text-muted hover:text-tx text-[18px] leading-none transition-colors">×</button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 space-y-3">
+          <p className="text-[11px] text-tx leading-relaxed">
+            importing a board file will <span className="text-red-400">replace all current content</span> — widgets, strokes, and text labels.
+          </p>
+          <p className="text-[10px] text-muted leading-relaxed">
+            this cannot be undone. make sure to export first if you want to keep your current board.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 px-5 py-3.5 border-t border-border">
+          <button
+            onClick={onCancel}
+            className="flex-1 text-[10px] tracking-[0.08em] border border-border2 text-muted hover:text-tx hover:border-muted px-3 py-1.5 transition-colors font-mono"
+          >
+            cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 text-[10px] tracking-[0.08em] border border-red-900 text-red-400 hover:border-red-500 hover:text-red-300 px-3 py-1.5 transition-colors font-mono"
+          >
+            yes, import
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── DrawCanvas ────────────────────────────────────────────────────────────────
 
 interface DrawCanvasProps {
@@ -611,6 +662,14 @@ function ToolBtn({label,icon,active,onClick}:{label:string;icon:string;active:bo
 
 // ── BulletinBoard ─────────────────────────────────────────────────────────────
 
+interface BoardData {
+  version: 1;
+  exportedAt: string;
+  widgets: Widget[];
+  strokes: Stroke[];
+  labels:  TextLabel[];
+}
+
 export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:externalDragRef}:BulletinBoardProps){
   // ── Persisted state (widgets, strokes, labels) ────────────────────────────
   const {
@@ -629,11 +688,73 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
   const [showAddMenu,setShowAddMenu]= useState(false);
   const [,setZCounter]=useState(10);
   const [selection,setSelection]=useState<SelectionState>({widgetIds:new Set(),strokeIds:new Set(),labelIds:new Set()});
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [pendingImportData, setPendingImportData] = useState<BoardData|null>(null);
   const boardRef=useRef<HTMLDivElement>(null);
+  const importInputRef=useRef<HTMLInputElement>(null);
 
   const handleHandleDragActive=useCallback((active:boolean)=>{
     if(externalDragRef) externalDragRef.current=active;
   },[externalDragRef]);
+
+  // ── Import / Export ───────────────────────────────────────────────────────
+
+  const handleExport = useCallback(() => {
+    const data: BoardData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      widgets,
+      strokes,
+      labels,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `board-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, [widgets, strokes, labels]);
+
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset so the same file can be re-imported if needed
+    e.target.value = "";
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string) as Partial<BoardData>;
+        if (parsed.version !== 1) { alert("unsupported board file version"); return; }
+        const data: BoardData = {
+          version: 1,
+          exportedAt: parsed.exportedAt ?? "",
+          widgets: parsed.widgets ?? [],
+          strokes: parsed.strokes ?? [],
+          labels:  parsed.labels  ?? [],
+        };
+        setPendingImportData(data);
+        setShowImportConfirm(true);
+      } catch {
+        alert("invalid board file");
+      }
+    };
+    reader.readAsText(file);
+  }, []);
+
+  const confirmImport = useCallback(() => {
+    if (!pendingImportData) return;
+    setWidgets(pendingImportData.widgets);
+    setStrokes(pendingImportData.strokes);
+    setLabels(pendingImportData.labels);
+    clearSelection();
+    setPendingImportData(null);
+    setShowImportConfirm(false);
+  }, [pendingImportData, setWidgets, setStrokes, setLabels]);
+
+  const cancelImport = useCallback(() => {
+    setPendingImportData(null);
+    setShowImportConfirm(false);
+  }, []);
 
   // ── Widget ops ────────────────────────────────────────────────────────────
 
@@ -741,6 +862,20 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
 
   return(
     <div ref={boardRef} className="relative w-full h-full overflow-hidden">
+
+      {/* Hidden file input for import */}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleImportFile}
+      />
+
+      {/* Import confirm modal */}
+      {showImportConfirm && (
+        <ImportConfirmModal onConfirm={confirmImport} onCancel={cancelImport} />
+      )}
 
       <DrawCanvas
         strokes={strokes} labels={labels} selection={selection}
@@ -882,6 +1017,25 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
             </button>
           </>
         )}
+
+        {/* ── Import / Export — always visible ── */}
+        <div className="w-px h-5 bg-border2"/>
+
+        <button
+          onClick={handleExport}
+          className="text-[10px] tracking-[0.08em] border border-border2 text-muted hover:text-green hover:border-green px-2.5 py-1.5 font-mono transition-colors"
+          title="Export board as JSON"
+        >
+          ↓ export
+        </button>
+
+        <button
+          onClick={() => importInputRef.current?.click()}
+          className="text-[10px] tracking-[0.08em] border border-border2 text-muted hover:text-green hover:border-green px-2.5 py-1.5 font-mono transition-colors"
+          title="Import board from JSON"
+        >
+          ↑ import
+        </button>
       </div>
     </div>
   );
