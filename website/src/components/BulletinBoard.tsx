@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
 import { NoteWidget, TodoWidget, BookmarkWidget, ClockWidget, WeatherWidget } from "./widgets";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type WidgetKind = "note" | "todo" | "bookmark" | "clock" | "weather";
-export type DrawTool   = "pen" | "line" | "eraser";
+export type DrawTool   = "pen" | "line" | "eraser" | "circle" | "box" | "text";
 
 export interface Widget {
   id:       string;
@@ -27,7 +27,16 @@ export interface Stroke {
   points: [number, number][];
   color:  string;
   width:  number;
-  tool:   "pen" | "line";
+  tool:   "pen" | "line" | "circle" | "box";
+}
+
+export interface TextLabel {
+  id:    string;
+  x:     number;
+  y:     number;
+  text:  string;
+  color: string;
+  size:  number;
 }
 
 interface BulletinBoardProps {
@@ -40,7 +49,6 @@ interface BulletinBoardProps {
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
-/** Returns true if point p is within `threshold` px of line segment (a→b) */
 function pointNearSegment(
   p: [number, number], a: [number, number], b: [number, number], threshold: number,
 ): boolean {
@@ -55,7 +63,6 @@ function pointNearSegment(
   return Math.sqrt(px * px + py * py) < threshold;
 }
 
-/** Returns true if eraser path comes close enough to any segment of a stroke */
 function eraserHitsStroke(eraserPts: [number, number][], stroke: Stroke, threshold: number): boolean {
   for (let i = 0; i < eraserPts.length; i++) {
     const ep = eraserPts[i];
@@ -70,11 +77,43 @@ function eraserHitsStroke(eraserPts: [number, number][], stroke: Stroke, thresho
   return false;
 }
 
+function eraserHitsText(eraserPts: [number, number][], label: TextLabel, threshold: number): boolean {
+  // approximate hit: any eraser point within threshold of the text origin
+  for (const ep of eraserPts) {
+    const dx = ep[0] - label.x, dy = ep[1] - label.y;
+    if (Math.sqrt(dx * dx + dy * dy) < threshold + 40) return true;
+  }
+  return false;
+}
+
 function pointsToPath(pts: [number, number][]): string {
   if (pts.length < 2) return pts.length === 1 ? `M ${pts[0][0]} ${pts[0][1]}` : "";
   let d = `M ${pts[0][0]} ${pts[0][1]}`;
   for (let i = 1; i < pts.length; i++) d += ` L ${pts[i][0]} ${pts[i][1]}`;
   return d;
+}
+
+/** Build an SVG ellipse path from two corner points (bounding box style) */
+function ellipsePath(a: [number, number], b: [number, number]): string {
+  const cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2;
+  const rx = Math.abs(b[0] - a[0]) / 2, ry = Math.abs(b[1] - a[1]) / 2;
+  if (rx < 1 || ry < 1) return "";
+  return `M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx + rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx - rx} ${cy} Z`;
+}
+
+/** Build a rect path from two corner points */
+function rectPath(a: [number, number], b: [number, number]): string {
+  const x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1]);
+  const w = Math.abs(b[0] - a[0]), h = Math.abs(b[1] - a[1]);
+  if (w < 1 || h < 1) return "";
+  return `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
+}
+
+/** Render a committed stroke as an SVG path string */
+function strokeToPath(s: Stroke): string {
+  if (s.tool === "circle") return ellipsePath(s.points[0], s.points[1] ?? s.points[0]);
+  if (s.tool === "box")    return rectPath(s.points[0], s.points[1] ?? s.points[0]);
+  return pointsToPath(s.points);
 }
 
 const WIDGET_DEFAULTS: Record<WidgetKind, Omit<Widget, "id" | "x" | "y">> = {
@@ -91,130 +130,241 @@ const PALETTE = ["#4ade80", "#f87171", "#facc15", "#60a5fa", "#e879f9", "#34d399
 
 interface DrawCanvasProps {
   strokes:     Stroke[];
+  labels:      TextLabel[];
   tool:        DrawTool;
   color:       string;
   brushSize:   number;
   eraserSize:  number;
+  fontSize:    number;
   active:      boolean;
   onStrokeEnd: (s: Stroke) => void;
   onErase:     (pts: [number, number][]) => void;
+  onAddLabel:  (l: TextLabel) => void;
 }
 
-function DrawCanvas({ strokes, tool, color, brushSize, eraserSize, active, onStrokeEnd, onErase }: DrawCanvasProps) {
-  const svgRef     = useRef<SVGSVGElement>(null);
-  const currentPts = useRef<[number, number][]>([]);
-  const lineStart  = useRef<[number, number] | null>(null);
-  const drawing    = useRef(false);
+function DrawCanvas({
+  strokes, labels, tool, color, brushSize, eraserSize, fontSize,
+  active, onStrokeEnd, onErase, onAddLabel,
+}: DrawCanvasProps) {
+  const svgRef      = useRef<SVGSVGElement>(null);
+  const currentPts  = useRef<[number, number][]>([]);
+  const shapeStart  = useRef<[number, number] | null>(null);
+  const drawing     = useRef(false);
   const [eraserPos, setEraserPos] = useState<[number, number] | null>(null);
+  const [livePath,  setLivePath]  = useState("");
+
+  // ── Pending text input ──────────────────────────────────────────────────────
+  const [pendingText, setPendingText] = useState<{ x: number; y: number; id: string } | null>(null);
+  const [textValue,   setTextValue]   = useState("");
+  const textInputRef = useRef<HTMLInputElement>(null);
+
+  // Keep latest values accessible inside listeners without re-registering
+  const stateRef = useRef({ tool, color, brushSize, eraserSize, fontSize, active, onStrokeEnd, onErase, onAddLabel });
+  useEffect(() => {
+    stateRef.current = { tool, color, brushSize, eraserSize, fontSize, active, onStrokeEnd, onErase, onAddLabel };
+  });
 
   const getPos = useCallback((e: PointerEvent): [number, number] => {
     const r = svgRef.current!.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top];
   }, []);
 
-  const onDown = useCallback((e: PointerEvent) => {
-    if (!active) return;
-    const pos = getPos(e);
-    drawing.current = true;
-    (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
-
-    if (tool === "pen") {
-      currentPts.current = [pos];
-    } else if (tool === "line") {
-      lineStart.current  = pos;
-      currentPts.current = [pos, pos];
-    } else if (tool === "eraser") {
-      currentPts.current = [pos];
-      onErase([pos]);
+  // Commit pending text on blur / enter
+  const commitText = useCallback(() => {
+    if (!pendingText) return;
+    const trimmed = textValue.trim();
+    if (trimmed) {
+      onAddLabel({ id: pendingText.id, x: pendingText.x, y: pendingText.y, text: trimmed, color, size: fontSize });
     }
-  }, [active, tool, onErase, getPos]);
+    setPendingText(null);
+    setTextValue("");
+  }, [pendingText, textValue, color, fontSize, onAddLabel]);
 
-  const onMove = useCallback((e: PointerEvent) => {
-    const pos = getPos(e);
-
-    if (active && tool === "eraser") setEraserPos(pos);
-
-    if (!drawing.current || !active) return;
-
-    if (tool === "pen") {
-      currentPts.current.push(pos);
-      svgRef.current?.querySelector("#live-path")?.setAttribute("d", pointsToPath(currentPts.current));
-    } else if (tool === "line" && lineStart.current) {
-      svgRef.current?.querySelector("#live-path")?.setAttribute("d", pointsToPath([lineStart.current, pos]));
-    } else if (tool === "eraser") {
-      currentPts.current.push(pos);
-      onErase(currentPts.current);
-    }
-  }, [active, tool, onErase, getPos]);
-
-  const onUp = useCallback((e: PointerEvent) => {
-    if (!drawing.current) return;
-    drawing.current = false;
-    const pos = getPos(e);
-
-    if (tool === "pen" && currentPts.current.length >= 2) {
-      onStrokeEnd({ id: uid(), points: [...currentPts.current], color, width: brushSize, tool: "pen" });
-    } else if (tool === "line" && lineStart.current) {
-      onStrokeEnd({ id: uid(), points: [lineStart.current, pos], color, width: brushSize, tool: "line" });
-      lineStart.current = null;
-    }
-
-    currentPts.current = [];
-    svgRef.current?.querySelector("#live-path")?.setAttribute("d", "");
-  }, [tool, color, brushSize, onStrokeEnd, getPos]);
-
-  const onLeave = useCallback(() => setEraserPos(null), []);
-
-  // Attach pointer events imperatively (avoids re-render on every move)
-  const svgCallbackRef = useCallback((svg: SVGSVGElement | null) => {
+  // Register pointer listeners once
+  useEffect(() => {
+    const svg = svgRef.current;
     if (!svg) return;
-    (svgRef as React.MutableRefObject<SVGSVGElement | null>).current = svg;
+
+    const onDown = (e: PointerEvent) => {
+      const { active, tool, onErase } = stateRef.current;
+      if (!active) return;
+
+      // Text tool: place an input on click, don't draw
+      if (tool === "text") return;
+
+      const pos = getPos(e);
+      drawing.current = true;
+      svg.setPointerCapture(e.pointerId);
+
+      if (tool === "pen") {
+        currentPts.current = [pos];
+        setLivePath(pointsToPath([pos]));
+      } else if (tool === "line" || tool === "circle" || tool === "box") {
+        shapeStart.current = pos;
+        setLivePath("");
+      } else if (tool === "eraser") {
+        currentPts.current = [pos];
+        onErase([pos]);
+      }
+    };
+
+    const onMove = (e: PointerEvent) => {
+      const { active, tool, onErase } = stateRef.current;
+      const pos = getPos(e);
+
+      if (active && tool === "eraser") setEraserPos(pos);
+      else setEraserPos(null);
+
+      if (!drawing.current || !active) return;
+
+      if (tool === "pen") {
+        currentPts.current.push(pos);
+        setLivePath(pointsToPath(currentPts.current));
+      } else if (tool === "line" && shapeStart.current) {
+        setLivePath(pointsToPath([shapeStart.current, pos]));
+      } else if (tool === "circle" && shapeStart.current) {
+        setLivePath(ellipsePath(shapeStart.current, pos));
+      } else if (tool === "box" && shapeStart.current) {
+        setLivePath(rectPath(shapeStart.current, pos));
+      } else if (tool === "eraser") {
+        currentPts.current.push(pos);
+        onErase(currentPts.current);
+      }
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (!drawing.current) return;
+      drawing.current = false;
+      const { tool, color, brushSize, onStrokeEnd } = stateRef.current;
+      const pos = getPos(e);
+
+      if (tool === "pen" && currentPts.current.length >= 2) {
+        onStrokeEnd({ id: uid(), points: [...currentPts.current], color, width: brushSize, tool: "pen" });
+      } else if ((tool === "line" || tool === "circle" || tool === "box") && shapeStart.current) {
+        onStrokeEnd({ id: uid(), points: [shapeStart.current, pos], color, width: brushSize, tool });
+        shapeStart.current = null;
+      }
+
+      currentPts.current = [];
+      setLivePath("");
+    };
+
+    const onLeave = () => setEraserPos(null);
+
     svg.addEventListener("pointerdown",  onDown);
     svg.addEventListener("pointermove",  onMove);
     svg.addEventListener("pointerup",    onUp);
     svg.addEventListener("pointerleave", onLeave);
-  }, [onDown, onMove, onUp, onLeave]);
+    return () => {
+      svg.removeEventListener("pointerdown",  onDown);
+      svg.removeEventListener("pointermove",  onMove);
+      svg.removeEventListener("pointerup",    onUp);
+      svg.removeEventListener("pointerleave", onLeave);
+    };
+  }, [getPos]);
 
-  const cursor = !active ? "default" : tool === "eraser" ? "none" : "crosshair";
+  // Text tool click handler (on the SVG wrapper div)
+  const handleTextClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!active || tool !== "text") return;
+    if (pendingText) { commitText(); return; }
+    const r = svgRef.current!.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    const id = uid();
+    setPendingText({ x, y, id });
+    setTextValue("");
+    setTimeout(() => textInputRef.current?.focus(), 0);
+  }, [active, tool, pendingText, commitText]);
+
+  const cursor = !active
+    ? "default"
+    : tool === "eraser" ? "none"
+    : tool === "text"   ? "text"
+    : "crosshair";
+
+  const liveStrokeDash = (tool === "line" || tool === "circle" || tool === "box") ? "4 3" : undefined;
 
   return (
-    <svg
-      ref={svgCallbackRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ cursor, zIndex: active ? 30 : 5, pointerEvents: active ? "all" : "none" }}
+    <div
+      className="absolute inset-0"
+      style={{ zIndex: active ? 30 : 5, pointerEvents: active ? "all" : "none", cursor }}
+      onClick={handleTextClick}
     >
-      {strokes.map(s => (
-        <path
-          key={s.id}
-          d={pointsToPath(s.points)}
-          fill="none"
-          stroke={s.color}
-          strokeWidth={s.width}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+      <svg ref={svgRef} className="absolute inset-0 w-full h-full" style={{ pointerEvents: tool === "text" ? "none" : "all" }}>
+        {/* Committed strokes */}
+        {strokes.map(s => (
+          <path
+            key={s.id}
+            d={strokeToPath(s)}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={s.width}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+
+        {/* Live preview */}
+        {livePath && (
+          <path
+            d={livePath}
+            fill="none"
+            stroke={color}
+            strokeWidth={brushSize}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={liveStrokeDash}
+          />
+        )}
+
+        {/* Eraser cursor */}
+        {active && tool === "eraser" && eraserPos && (
+          <circle
+            cx={eraserPos[0]} cy={eraserPos[1]} r={eraserSize / 2}
+            fill="rgba(255,255,255,0.08)"
+            stroke="rgba(255,255,255,0.35)"
+            strokeWidth={1}
+            style={{ pointerEvents: "none" }}
+          />
+        )}
+      </svg>
+
+      {/* Text labels */}
+      {labels.map(l => (
+        <span
+          key={l.id}
+          className="absolute font-mono select-none pointer-events-none whitespace-pre"
+          style={{ left: l.x, top: l.y - l.size, color: l.color, fontSize: l.size, lineHeight: 1.2 }}
+        >
+          {l.text}
+        </span>
       ))}
-      <path
-        id="live-path"
-        fill="none"
-        stroke={tool === "eraser" ? "transparent" : color}
-        strokeWidth={brushSize}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={tool === "line" ? "4 3" : undefined}
-      />
-      {active && tool === "eraser" && eraserPos && (
-        <circle
-          cx={eraserPos[0]}
-          cy={eraserPos[1]}
-          r={eraserSize / 2}
-          fill="rgba(255,255,255,0.08)"
-          stroke="rgba(255,255,255,0.35)"
-          strokeWidth={1}
-          style={{ pointerEvents: "none" }}
+
+      {/* Pending text input */}
+      {pendingText && (
+        <input
+          ref={textInputRef}
+          value={textValue}
+          onChange={e => setTextValue(e.target.value)}
+          onBlur={commitText}
+          onKeyDown={e => {
+            if (e.key === "Enter")  { commitText(); }
+            if (e.key === "Escape") { setPendingText(null); setTextValue(""); }
+          }}
+          className="absolute bg-transparent outline-none font-mono caret-green border-b border-dashed border-green"
+          style={{
+            left:     pendingText.x,
+            top:      pendingText.y - fontSize,
+            color,
+            fontSize,
+            lineHeight: 1.2,
+            minWidth:   80,
+          }}
+          placeholder="type here..."
+          spellCheck={false}
         />
       )}
-    </svg>
+    </div>
   );
 }
 
@@ -274,10 +424,7 @@ function WidgetCard({
         touchAction: "none",
       }}
     >
-      {/* Pin */}
       <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-green border border-surface z-10 opacity-80" />
-
-      {/* Card */}
       <div
         className="w-full h-full bg-surface border border-border2 p-3 flex flex-col overflow-hidden"
         style={{ boxShadow: "2px 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)" }}
@@ -327,11 +474,13 @@ function ToolBtn({
 export function BulletinBoard({ weather, timeFormat, tempUnit }: BulletinBoardProps) {
   const [widgets,     setWidgets]     = useState<Widget[]>([]);
   const [strokes,     setStrokes]     = useState<Stroke[]>([]);
+  const [labels,      setLabels]      = useState<TextLabel[]>([]);
   const [drawMode,    setDrawMode]    = useState(false);
   const [activeTool,  setActiveTool]  = useState<DrawTool>("pen");
   const [drawColor,   setDrawColor]   = useState(PALETTE[0]);
   const [brushSize,   setBrushSize]   = useState(2);
   const [eraserSize,  setEraserSize]  = useState(20);
+  const [fontSize,    setFontSize]    = useState(14);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [, setZCounter] = useState(10);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -368,7 +517,10 @@ export function BulletinBoard({ weather, timeFormat, tempUnit }: BulletinBoardPr
 
   const handleErase = useCallback((pts: [number, number][]) => {
     setStrokes(prev => prev.filter(s => !eraserHitsStroke(pts, s, eraserSize / 2 + s.width)));
+    setLabels(prev  => prev.filter(l  => !eraserHitsText(pts, l, eraserSize / 2)));
   }, [eraserSize]);
+
+  const addLabel  = useCallback((l: TextLabel) => setLabels(prev => [...prev, l]), []);
 
   const enterDrawMode = useCallback((tool: DrawTool) => {
     setActiveTool(tool);
@@ -378,21 +530,29 @@ export function BulletinBoard({ weather, timeFormat, tempUnit }: BulletinBoardPr
 
   const exitDrawMode = useCallback(() => setDrawMode(false), []);
 
+  const isEraserTool = activeTool === "eraser";
+  const isTextTool   = activeTool === "text";
+  const showColorPicker = drawMode && !isEraserTool;
+  const showBrushSize   = drawMode && !isEraserTool && !isTextTool;
+  const showEraserSize  = drawMode && isEraserTool;
+  const showFontSize    = drawMode && isTextTool;
+
   return (
     <div ref={boardRef} className="relative w-full h-full overflow-hidden">
-      {/* Draw canvas */}
       <DrawCanvas
         strokes={strokes}
+        labels={labels}
         tool={activeTool}
         color={drawColor}
         brushSize={brushSize}
         eraserSize={eraserSize}
+        fontSize={fontSize}
         active={drawMode}
         onStrokeEnd={addStroke}
         onErase={handleErase}
+        onAddLabel={addLabel}
       />
 
-      {/* Widgets */}
       {widgets.map(w => (
         <WidgetCard
           key={w.id}
@@ -408,7 +568,6 @@ export function BulletinBoard({ weather, timeFormat, tempUnit }: BulletinBoardPr
         />
       ))}
 
-      {/* Empty state */}
       {widgets.length === 0 && !drawMode && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
@@ -442,21 +601,23 @@ export function BulletinBoard({ weather, timeFormat, tempUnit }: BulletinBoardPr
           )}
         </div>
 
-        {/* Separator */}
         <div className="w-px h-5 bg-border2" />
 
         {/* Draw tools */}
         <ToolBtn label="pen"    icon="✏"  active={drawMode && activeTool === "pen"}    onClick={() => drawMode && activeTool === "pen"    ? exitDrawMode() : enterDrawMode("pen")} />
         <ToolBtn label="line"   icon="╱"  active={drawMode && activeTool === "line"}   onClick={() => drawMode && activeTool === "line"   ? exitDrawMode() : enterDrawMode("line")} />
+        <ToolBtn label="circle" icon="○"  active={drawMode && activeTool === "circle"} onClick={() => drawMode && activeTool === "circle" ? exitDrawMode() : enterDrawMode("circle")} />
+        <ToolBtn label="box"    icon="□"  active={drawMode && activeTool === "box"}    onClick={() => drawMode && activeTool === "box"    ? exitDrawMode() : enterDrawMode("box")} />
+        <ToolBtn label="text"   icon="T"  active={drawMode && activeTool === "text"}   onClick={() => drawMode && activeTool === "text"   ? exitDrawMode() : enterDrawMode("text")} />
         <ToolBtn label="eraser" icon="◻"  active={drawMode && activeTool === "eraser"} onClick={() => drawMode && activeTool === "eraser" ? exitDrawMode() : enterDrawMode("eraser")} />
 
-        {/* Draw options (only when draw mode active) */}
+        {/* Draw options */}
         {drawMode && (
           <>
             <div className="w-px h-5 bg-border2" />
 
             {/* Color palette */}
-            {activeTool !== "eraser" && (
+            {showColorPicker && (
               <div className="flex items-center gap-1 border border-border2 px-2 py-1.5">
                 {PALETTE.map(c => (
                   <button
@@ -469,22 +630,8 @@ export function BulletinBoard({ weather, timeFormat, tempUnit }: BulletinBoardPr
               </div>
             )}
 
-            {/* Size picker */}
-            {activeTool === "eraser" ? (
-              <div className="flex items-center gap-1 border border-border2 px-2 py-1.5">
-                <span className="text-[9px] text-muted mr-1">size</span>
-                {[12, 20, 36, 56].map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setEraserSize(s)}
-                    className={`flex items-center justify-center transition-colors ${eraserSize === s ? "text-green" : "text-muted hover:text-tx"}`}
-                    style={{ width: 18, height: 18 }}
-                  >
-                    <div className="rounded-full border border-current" style={{ width: Math.min(s / 3, 14), height: Math.min(s / 3, 14) }} />
-                  </button>
-                ))}
-              </div>
-            ) : (
+            {/* Brush size */}
+            {showBrushSize && (
               <div className="flex items-center gap-1.5 border border-border2 px-2 py-1.5">
                 {[1, 2, 4, 8].map(s => (
                   <button
@@ -498,11 +645,45 @@ export function BulletinBoard({ weather, timeFormat, tempUnit }: BulletinBoardPr
               </div>
             )}
 
+            {/* Eraser size */}
+            {showEraserSize && (
+              <div className="flex items-center gap-1 border border-border2 px-2 py-1.5">
+                <span className="text-[9px] text-muted mr-1">size</span>
+                {[12, 20, 36, 56].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setEraserSize(s)}
+                    className={`flex items-center justify-center transition-colors ${eraserSize === s ? "text-green" : "text-muted hover:text-tx"}`}
+                    style={{ width: 18, height: 18 }}
+                  >
+                    <div className="rounded-full border border-current" style={{ width: Math.min(s / 3, 14), height: Math.min(s / 3, 14) }} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Font size */}
+            {showFontSize && (
+              <div className="flex items-center gap-1.5 border border-border2 px-2 py-1.5">
+                <span className="text-[9px] text-muted mr-1">size</span>
+                {[10, 14, 20, 28].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setFontSize(s)}
+                    className={`font-mono transition-colors leading-none ${fontSize === s ? "text-green" : "text-muted hover:text-tx"}`}
+                    style={{ fontSize: Math.max(8, s * 0.6) }}
+                  >
+                    A
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="w-px h-5 bg-border2" />
 
             {/* Clear */}
             <button
-              onClick={() => setStrokes([])}
+              onClick={() => { setStrokes([]); setLabels([]); }}
               className="text-[10px] tracking-[0.08em] border border-red-900 text-red-500 hover:border-red-500 px-3 py-1.5 font-mono transition-colors"
             >
               clear
