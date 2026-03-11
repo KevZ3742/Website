@@ -42,6 +42,10 @@ body::before {
   z-index: 0;
 }
 
+body.no-dots::before {
+  display: none;
+}
+
 /* blinking cursor — requires keyframe */
 @keyframes blink {
   50% { opacity: 0; }

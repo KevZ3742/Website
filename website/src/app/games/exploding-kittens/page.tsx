@@ -1,8 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 
 export default function ExplodingKittensPage() {
+  useEffect(() => {
+    document.body.classList.add("no-dots");
+    return () => document.body.classList.remove("no-dots");
+  }, []);
+
   return (
     <div className="h-screen flex flex-col bg-bg font-mono">
       {/* Thin header bar */}
