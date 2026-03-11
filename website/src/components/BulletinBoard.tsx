@@ -165,7 +165,7 @@ interface ImportConfirmModalProps {
 function ImportConfirmModal({ onConfirm, onCancel }: ImportConfirmModalProps) {
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-100 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.7)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
@@ -697,6 +697,14 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
     if(externalDragRef) externalDragRef.current=active;
   },[externalDragRef]);
 
+  // ── Selection ops ─────────────────────────────────────────────────────────
+  // NOTE: defined early so it can be used by confirmImport below
+
+  const clearSelection = useCallback(
+    () => setSelection({widgetIds:new Set(),strokeIds:new Set(),labelIds:new Set()}),
+    [],
+  );
+
   // ── Import / Export ───────────────────────────────────────────────────────
 
   const handleExport = useCallback(() => {
@@ -718,7 +726,6 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Reset so the same file can be re-imported if needed
     e.target.value = "";
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -749,7 +756,7 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
     clearSelection();
     setPendingImportData(null);
     setShowImportConfirm(false);
-  }, [pendingImportData, setWidgets, setStrokes, setLabels]);
+  }, [pendingImportData, setWidgets, setStrokes, setLabels, clearSelection]);
 
   const cancelImport = useCallback(() => {
     setPendingImportData(null);
@@ -797,9 +804,7 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
     setLabels(prev=>prev.map(l=>l.id===id?{...l,size}:l));
   };
 
-  // ── Selection ops ─────────────────────────────────────────────────────────
-
-  const clearSelection=()=>setSelection({widgetIds:new Set(),strokeIds:new Set(),labelIds:new Set()});
+  // ── Move selected ─────────────────────────────────────────────────────────
 
   const handleMoveSelected=(dx:number,dy:number)=>{
     setStrokes(prev=>prev.map(s=>selection.strokeIds.has(s.id)?{...s,points:s.points.map(([x,y])=>[x+dx,y+dy] as [number,number])}:s));
