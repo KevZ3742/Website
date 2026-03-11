@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BUILTIN_THEMES, applyTheme, type ThemeEntry } from "../lib/themes";
 import {
@@ -27,13 +27,16 @@ export default function Home() {
   const [customThemes, setCustomThemes] = useState<ThemeEntry[]>(loadCustomThemes);
   const [showSettings,     setShowSettings]     = useState(false);
   const [showThemeModal,   setShowThemeModal]   = useState(false);
-  const [collapsed,        setCollapsed]        = useState(false); // esc mode
+  const [collapsed,        setCollapsed]        = useState(false);
 
   const allThemes   = useMemo(() => [...BUILTIN_THEMES, ...customThemes], [customThemes]);
   const activeTheme = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
 
   const now                    = useClock();
   const { weather, error: weatherErr } = useWeather(settings.weatherLocation);
+
+  // FIX 1: ref shared between BulletinBoard's SelectOverlay and useDragTheme
+  const handleDragActiveRef = useRef(false);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -51,7 +54,14 @@ export default function Home() {
 
   useEffect(() => { applyTheme(activeTheme.colors); }, [activeTheme.colors]);
 
-  const isDragging = useDragTheme({ allThemes, customThemes, settings, saveCustomThemes, saveSettings });
+  const isDragging = useDragTheme({
+    allThemes,
+    customThemes,
+    settings,
+    saveCustomThemes,
+    saveSettings,
+    handleDragActiveRef,
+  });
 
   // ── Keyboard ─────────────────────────────────────────────────────────────────
 
@@ -81,7 +91,6 @@ export default function Home() {
 
   return (
     <>
-      {/* Drag overlay */}
       {isDragging && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div className="border-2 border-dashed border-green m-8 absolute inset-0 opacity-50" />
@@ -89,7 +98,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Theme modal */}
       {showThemeModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
@@ -134,9 +142,7 @@ export default function Home() {
           saveSettings={saveSettings}
         />
 
-        {/* Main content — slides between normal and board */}
         <main className="flex-1 min-h-0 relative overflow-hidden">
-          {/* Normal view */}
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-10 px-8 transition-all duration-300"
             style={{
@@ -149,7 +155,6 @@ export default function Home() {
             <SearchBar searchEngine={settings.searchEngine} />
           </div>
 
-          {/* Bulletin board view */}
           <div
             className="absolute inset-0 transition-all duration-300"
             style={{
@@ -162,6 +167,7 @@ export default function Home() {
               weather={weather}
               timeFormat={settings.timeFormat}
               tempUnit={settings.tempUnit}
+              handleDragActiveRef={handleDragActiveRef}
             />
           </div>
         </main>

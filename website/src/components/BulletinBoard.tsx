@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import type React from "react";
 import { NoteWidget, TodoWidget, BookmarkWidget, ClockWidget, WeatherWidget } from "./widgets";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -37,13 +38,12 @@ interface BulletinBoardProps {
   weather:{temp:number;condition:string;icon:string;city:string}|null;
   timeFormat:"24h"|"12h";
   tempUnit:"C"|"F";
+  handleDragActiveRef?: React.RefObject<boolean>;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function uid() { return Math.random().toString(36).slice(2,9); }
-
-function deg2rad(d:number) { return d*Math.PI/180; }
 
 function pointNearSegment(p:[number,number],a:[number,number],b:[number,number],t:number) {
   const dx=b[0]-a[0],dy=b[1]-a[1],lenSq=dx*dx+dy*dy;
@@ -82,6 +82,11 @@ function hitTestStroke(pt:[number,number],s:Stroke):boolean {
 function hitTestLabel(pt:[number,number],l:TextLabel):boolean {
   const w=l.text.length*l.size*0.6;
   return pt[0]>=l.x-4&&pt[0]<=l.x+w+4&&pt[1]>=l.y-l.size-4&&pt[1]<=l.y+4;
+}
+
+function labelBounds(l:TextLabel):{x:number;y:number;w:number;h:number} {
+  const w=Math.max(l.text.length*l.size*0.6,40);
+  return {x:l.x,y:l.y-l.size,w,h:l.size+8};
 }
 
 function hitTestWidget(pt:[number,number],w:Widget):boolean {
@@ -128,19 +133,8 @@ function eraserHitsText(pts:[number,number][],l:TextLabel,t:number) {
   return false;
 }
 
-// Scale stroke points uniformly from a centre point
 function scaleStroke(s:Stroke,sx:number,sy:number,cx:number,cy:number):Stroke {
   return {...s,points:s.points.map(([x,y])=>[(x-cx)*sx+cx,(y-cy)*sy+cy] as [number,number])};
-}
-
-// Rotate stroke points around a centre
-function rotateStroke(s:Stroke,angleDeg:number,cx:number,cy:number):Stroke {
-  const r=deg2rad(angleDeg);
-  const cos=Math.cos(r),sin=Math.sin(r);
-  return {...s,points:s.points.map(([x,y])=>{
-    const dx=x-cx,dy=y-cy;
-    return [cx+dx*cos-dy*sin, cy+dx*sin+dy*cos] as [number,number];
-  })};
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -294,7 +288,7 @@ function DrawCanvas({strokes,labels,selection,tool,color,brushSize,eraserSize,fo
   );
 }
 
-// ── WidgetCard — pure rendering, no pointer logic for resize/rotate ────────────
+// ── WidgetCard ────────────────────────────────────────────────────────────────
 
 const WIDGET_LABELS:Record<WidgetKind,string>={
   note:"note",todo:"tasks",bookmark:"bookmark",clock:"clock",weather:"weather",
@@ -306,11 +300,18 @@ interface WidgetCardProps {
   weather:BulletinBoardProps["weather"];
   onChange:(id:string,data:Record<string,unknown>)=>void;
   onDelete:(id:string)=>void;
+  onActivateSelect:(id:string)=>void;
 }
 
-function WidgetCard({widget,selected,selectMode,timeFormat,tempUnit,weather,onChange,onDelete}:WidgetCardProps){
+function WidgetCard({widget,selected,selectMode,timeFormat,tempUnit,weather,onChange,onDelete,onActivateSelect}:WidgetCardProps){
   return(
     <div className="absolute group select-none"
+      onPointerDown={e=>{
+        // Don't hijack clicks on interactive inner content (inputs, textareas, buttons, links)
+        const target=e.target as HTMLElement;
+        if(target.closest("input,textarea,button,a,[contenteditable]"))return;
+        onActivateSelect(widget.id);
+      }}
       style={{left:widget.x,top:widget.y,width:widget.w,height:widget.h,
         transform:`rotate(${widget.rotation}deg)`,
         cursor:selectMode?(selected?"grab":"default"):"grab",
@@ -346,47 +347,36 @@ interface SelectOverlayProps {
   onMoveSelected:(dx:number,dy:number)=>void;
   onMoveWidget:(id:string,x:number,y:number)=>void;
   onResizeWidget:(id:string,w:number,h:number,x:number,y:number)=>void;
-  onRotateWidget:(id:string,rotation:number)=>void;
   onResizeStroke:(id:string,sx:number,sy:number,cx:number,cy:number)=>void;
-  onRotateStroke:(id:string,angle:number,cx:number,cy:number)=>void;
+  onResizeLabel:(id:string,size:number)=>void;
   onBringForward:(id:string)=>void;
+  onHandleDragActive:(active:boolean)=>void;
 }
 
-// All interact modes — coordinates are always overlay-relative
 type InteractMode =
   | {kind:"none"}
   | {kind:"marquee";start:[number,number]}
   | {kind:"move";base:[number,number];widgetId?:string;widgetOrigin?:{wx:number;wy:number}}
-  // Widget resize: startPos and ox/oy/ow/oh all overlay-relative
   | {kind:"resize-widget";widgetId:string;handle:ResizeHandle;startPos:[number,number];ox:number;oy:number;ow:number;oh:number}
-  // Widget rotate: cx/cy are overlay-relative centre; startAngle is angle at pointer-down
-  | {kind:"rotate-widget";widgetId:string;cx:number;cy:number;startAngle:number;origRotation:number}
-  // Stroke resize: startPos overlay-relative; origStroke is a snapshot to scale from
   | {kind:"resize-stroke";strokeId:string;handle:ResizeHandle;origBounds:{x:number;y:number;w:number;h:number};origStroke:Stroke;startPos:[number,number]}
-  // Stroke rotate: accumulate from snapshot each frame
-  | {kind:"rotate-stroke";strokeId:string;cx:number;cy:number;startAngle:number;origStroke:Stroke};
+  | {kind:"resize-label";labelId:string;handle:ResizeHandle;startPos:[number,number];origSize:number};
 
 function SelectOverlay({
   widgets,strokes,labels,selection,
-  onSetSelection,onMoveSelected,onMoveWidget,onResizeWidget,onRotateWidget,
-  onResizeStroke,onRotateStroke,onBringForward,
+  onSetSelection,onMoveSelected,onMoveWidget,onResizeWidget,
+  onResizeStroke,onResizeLabel,onBringForward,onHandleDragActive,
 }:SelectOverlayProps){
   const [marquee,setMarquee]=useState<{x:number;y:number;w:number;h:number}|null>(null);
   const overlayRef=useRef<HTMLDivElement>(null);
   const mode=useRef<InteractMode>({kind:"none"});
 
-  const stateRef=useRef({widgets,strokes,labels,selection,onSetSelection,onMoveSelected,onMoveWidget,onResizeWidget,onRotateWidget,onResizeStroke,onRotateStroke,onBringForward});
-  useEffect(()=>{stateRef.current={widgets,strokes,labels,selection,onSetSelection,onMoveSelected,onMoveWidget,onResizeWidget,onRotateWidget,onResizeStroke,onRotateStroke,onBringForward};});
+  const stateRef=useRef({widgets,strokes,labels,selection,onSetSelection,onMoveSelected,onMoveWidget,onResizeWidget,onResizeStroke,onResizeLabel,onBringForward,onHandleDragActive});
+  useEffect(()=>{stateRef.current={widgets,strokes,labels,selection,onSetSelection,onMoveSelected,onMoveWidget,onResizeWidget,onResizeStroke,onResizeLabel,onBringForward,onHandleDragActive};});
 
   const getPos=useCallback((e:PointerEvent|React.PointerEvent):[number,number]=>{
     const r=overlayRef.current!.getBoundingClientRect();
     return [e.clientX-r.left,e.clientY-r.top];
   },[]);
-
-  // Angle (degrees) from (cx,cy) to (px,py) — all overlay-relative
-  const angleTo=useCallback((cx:number,cy:number,px:number,py:number)=>
-    Math.atan2(py-cy,px-cx)*180/Math.PI
-  ,[]);
 
   useEffect(()=>{
     const el=overlayRef.current;if(!el)return;
@@ -432,7 +422,7 @@ function SelectOverlay({
     };
 
     const onMove=(e:PointerEvent)=>{
-      const{onMoveSelected,onMoveWidget,onResizeWidget,onRotateWidget,onResizeStroke,onRotateStroke}=stateRef.current;
+      const{onMoveSelected,onMoveWidget,onResizeWidget,onResizeStroke,onResizeLabel}=stateRef.current;
       const pos=getPos(e);
       const m=mode.current;
 
@@ -448,9 +438,9 @@ function SelectOverlay({
       }
 
       if(m.kind==="resize-widget"){
-        // All coords overlay-relative — consistent coordinate space
         const{widgetId,handle,startPos,ox,oy,ow,oh}=m;
-        const dx=pos[0]-startPos[0],dy=pos[1]-startPos[1],MIN=80;
+        const dx=pos[0]-startPos[0],dy=pos[1]-startPos[1];
+        const MIN=80;
         let nx=ox,ny=oy,nw=ow,nh=oh;
         if(handle.includes("e"))nw=Math.max(MIN,ow+dx);
         if(handle.includes("s"))nh=Math.max(MIN,oh+dy);
@@ -459,34 +449,26 @@ function SelectOverlay({
         onResizeWidget(widgetId,nw,nh,nx,ny);return;
       }
 
-      if(m.kind==="rotate-widget"){
-        // cx/cy overlay-relative, pos overlay-relative — same space ✓
-        const{widgetId,cx,cy,startAngle,origRotation}=m;
-        onRotateWidget(widgetId,origRotation+(angleTo(cx,cy,pos[0],pos[1])-startAngle));return;
-      }
-
       if(m.kind==="resize-stroke"){
-        // Scale from origStroke snapshot so there's no drift
-        const{strokeId,handle,origBounds:b,origStroke,startPos}=m;
+        const{strokeId,handle,origBounds:b,startPos}=m;
         const dx=pos[0]-startPos[0],dy=pos[1]-startPos[1];
         const cx=b.x+b.w/2,cy=b.y+b.h/2;
-        // Compute new bounding box dimensions based on which handle moved
         let nw=b.w,nh=b.h;
         if(handle.includes("e"))nw=Math.max(4,b.w+dx);
         if(handle.includes("w"))nw=Math.max(4,b.w-dx);
         if(handle.includes("s"))nh=Math.max(4,b.h+dy);
         if(handle.includes("n"))nh=Math.max(4,b.h-dy);
-        const sx=nw/Math.max(1,b.w), sy=nh/Math.max(1,b.h);
+        const sx=nw/Math.max(1,b.w),sy=nh/Math.max(1,b.h);
         onResizeStroke(strokeId,sx,sy,cx,cy);
         return;
       }
 
-      if(m.kind==="rotate-stroke"){
-        // Rotate origStroke snapshot by total delta — no accumulation drift
-        const{strokeId,cx,cy,startAngle,origStroke}=m;
-        const totalDelta=angleTo(cx,cy,pos[0],pos[1])-startAngle;
-        // We pass the delta and let the parent apply it to origStroke snapshot
-        onRotateStroke(strokeId,totalDelta,cx,cy);
+      if(m.kind==="resize-label"){
+        const{labelId,startPos,origSize,handle}=m;
+        const dx=pos[0]-startPos[0],dy=pos[1]-startPos[1];
+        // Pulling toward se/s/e = positive delta = grow; toward nw/n/w = negative delta = grow
+        const primary=handle.includes("s")||handle.includes("e")?Math.max(dx,dy):Math.max(-dx,-dy);
+        onResizeLabel(labelId,Math.max(8,Math.round(origSize+primary*0.5)));
         return;
       }
 
@@ -498,8 +480,13 @@ function SelectOverlay({
     };
 
     const onUp=(e:PointerEvent)=>{
-      const{widgets,strokes,labels,selection,onSetSelection}=stateRef.current;
+      const{widgets,strokes,labels,selection,onSetSelection,onHandleDragActive}=stateRef.current;
       const m=mode.current;
+
+      if(m.kind!=="none"&&m.kind!=="marquee"){
+        onHandleDragActive(false);
+      }
+
       if(m.kind==="marquee"){
         const mq=marquee;
         if(mq&&(mq.w>4||mq.h>4)){
@@ -523,9 +510,7 @@ function SelectOverlay({
       el.removeEventListener("pointermove",onMove);
       el.removeEventListener("pointerup",onUp);
     };
-  },[getPos,angleTo,marquee]);
-
-  // ── Handle definitions ────────────────────────────────────────────────────
+  },[getPos,marquee]);
 
   const resizeHandleDefs:[ResizeHandle,React.CSSProperties][]=[
     ["nw",{top:-5,left:-5}],["ne",{top:-5,right:-5}],
@@ -534,56 +519,35 @@ function SelectOverlay({
     ["e",{top:"calc(50% - 4px)",right:-5}],["w",{top:"calc(50% - 4px)",left:-5}],
   ];
 
-  const RotateHandle=({onPDown}:{onPDown:(e:React.PointerEvent)=>void})=>(
-    <>
-      <div data-handle="rotate" className="absolute pointer-events-auto flex items-center justify-center"
-        style={{top:-30,left:"calc(50% - 8px)",width:16,height:16,cursor:"crosshair",touchAction:"none",zIndex:21}}
-        onPointerDown={onPDown}>
-        <div className="w-3.5 h-3.5 rounded-full border-2 border-green bg-surface opacity-90"/>
-      </div>
-      <div className="absolute pointer-events-none"
-        style={{top:-26,left:"calc(50% - 0.5px)",width:1,height:22,background:"var(--green)",opacity:0.5}}/>
-    </>
-  );
+  const suppressDrag=(e:React.DragEvent)=>{e.preventDefault();e.stopPropagation();};
 
   return(
     <div ref={overlayRef} className="absolute inset-0" style={{zIndex:50}}>
 
-      {/* Widget handles */}
-      {widgets.filter(w=>selection.widgetIds.has(w.id)).map(w=>{
-        // cx/cy in overlay coords — used for rotate angle calculation
-        const cx=w.x+w.w/2, cy=w.y+w.h/2;
-        return(
-          <div key={`wh-${w.id}`} className="absolute pointer-events-none"
-            style={{left:w.x,top:w.y,width:w.w,height:w.h,
-              transform:`rotate(${w.rotation}deg)`,transformOrigin:"center center"}}>
-            {resizeHandleDefs.map(([handle,style])=>(
-              <div key={handle} data-handle="resize"
-                className="absolute w-2.5 h-2.5 bg-surface border border-green z-20 pointer-events-auto"
-                style={{...style,cursor:RESIZE_CURSORS[handle],touchAction:"none"}}
-                onPointerDown={e=>{
-                  e.stopPropagation();
-                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                  const pos=getPos(e);
-                  // startPos in overlay coords — same space as getPos in onMove
-                  mode.current={kind:"resize-widget",widgetId:w.id,handle,startPos:pos,ox:w.x,oy:w.y,ow:w.w,oh:w.h};
-                }}/>
-            ))}
-            <RotateHandle onPDown={e=>{
-              e.stopPropagation();
-              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-              const pos=getPos(e);
-              mode.current={kind:"rotate-widget",widgetId:w.id,cx,cy,startAngle:angleTo(cx,cy,pos[0],pos[1]),origRotation:w.rotation};
-            }}/>
-          </div>
-        );
-      })}
+      {/* Widget resize handles — axis-aligned, no rotation transform */}
+      {widgets.filter(w=>selection.widgetIds.has(w.id)).map(w=>(
+        <div key={`wh-${w.id}`} className="absolute pointer-events-none"
+          style={{left:w.x,top:w.y,width:w.w,height:w.h}}>
+          {resizeHandleDefs.map(([handle,style])=>(
+            <div key={handle} data-handle="resize"
+              className="absolute w-2.5 h-2.5 bg-surface border border-green z-20 pointer-events-auto"
+              style={{...style,cursor:RESIZE_CURSORS[handle],touchAction:"none"}}
+              onDragStart={suppressDrag}
+              onPointerDown={e=>{
+                e.stopPropagation();
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                stateRef.current.onHandleDragActive(true);
+                const pos=getPos(e);
+                mode.current={kind:"resize-widget",widgetId:w.id,handle,startPos:pos,ox:w.x,oy:w.y,ow:w.w,oh:w.h};
+              }}/>
+          ))}
+        </div>
+      ))}
 
-      {/* Stroke/shape handles */}
+      {/* Stroke resize handles */}
       {strokes.filter(s=>selection.strokeIds.has(s.id)).map(s=>{
         const b=strokeBounds(s);
         const pad=10;
-        const cx=b.x+b.w/2, cy=b.y+b.h/2;
         return(
           <div key={`sh-${s.id}`} className="absolute pointer-events-none"
             style={{left:b.x-pad,top:b.y-pad,width:b.w+pad*2,height:b.h+pad*2}}>
@@ -591,19 +555,39 @@ function SelectOverlay({
               <div key={handle} data-handle="resize"
                 className="absolute w-2.5 h-2.5 bg-surface border border-green z-20 pointer-events-auto"
                 style={{...style,cursor:RESIZE_CURSORS[handle],touchAction:"none"}}
+                onDragStart={suppressDrag}
                 onPointerDown={e=>{
                   e.stopPropagation();
                   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  stateRef.current.onHandleDragActive(true);
                   const pos=getPos(e);
                   mode.current={kind:"resize-stroke",strokeId:s.id,handle,origBounds:b,origStroke:{...s,points:[...s.points]},startPos:pos};
                 }}/>
             ))}
-            <RotateHandle onPDown={e=>{
-              e.stopPropagation();
-              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-              const pos=getPos(e);
-              mode.current={kind:"rotate-stroke",strokeId:s.id,cx,cy,startAngle:angleTo(cx,cy,pos[0],pos[1]),origStroke:{...s,points:[...s.points]}};
-            }}/>
+          </div>
+        );
+      })}
+
+      {/* Text label resize handles — all 8, same as widgets/strokes */}
+      {labels.filter(l=>selection.labelIds.has(l.id)).map(l=>{
+        const b=labelBounds(l);
+        const pad=6;
+        return(
+          <div key={`lh-${l.id}`} className="absolute pointer-events-none"
+            style={{left:b.x-pad,top:b.y-pad,width:b.w+pad*2,height:b.h+pad*2}}>
+            {resizeHandleDefs.map(([handle,style])=>(
+              <div key={handle} data-handle="resize"
+                className="absolute w-2.5 h-2.5 bg-surface border border-green z-20 pointer-events-auto"
+                style={{...style,cursor:RESIZE_CURSORS[handle],touchAction:"none"}}
+                onDragStart={suppressDrag}
+                onPointerDown={e=>{
+                  e.stopPropagation();
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  stateRef.current.onHandleDragActive(true);
+                  const pos=getPos(e);
+                  mode.current={kind:"resize-label",labelId:l.id,handle,startPos:pos,origSize:l.size};
+                }}/>
+            ))}
           </div>
         );
       })}
@@ -631,7 +615,7 @@ function ToolBtn({label,icon,active,onClick}:{label:string;icon:string;active:bo
 
 // ── BulletinBoard ─────────────────────────────────────────────────────────────
 
-export function BulletinBoard({weather,timeFormat,tempUnit}:BulletinBoardProps){
+export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:externalDragRef}:BulletinBoardProps){
   const [widgets,    setWidgets]    = useState<Widget[]>([]);
   const [strokes,    setStrokes]    = useState<Stroke[]>([]);
   const [labels,     setLabels]     = useState<TextLabel[]>([]);
@@ -645,6 +629,10 @@ export function BulletinBoard({weather,timeFormat,tempUnit}:BulletinBoardProps){
   const [,setZCounter]=useState(10);
   const [selection,setSelection]=useState<SelectionState>({widgetIds:new Set(),strokeIds:new Set(),labelIds:new Set()});
   const boardRef=useRef<HTMLDivElement>(null);
+
+  const handleHandleDragActive=useCallback((active:boolean)=>{
+    if(externalDragRef) externalDragRef.current=active;
+  },[externalDragRef]);
 
   // ── Widget ops ────────────────────────────────────────────────────────────
 
@@ -660,21 +648,15 @@ export function BulletinBoard({weather,timeFormat,tempUnit}:BulletinBoardProps){
 
   const moveWidget  =useCallback((id:string,x:number,y:number)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,x,y}:w)),[]);
   const resizeWidget=useCallback((id:string,nw:number,nh:number,nx:number,ny:number)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,w:nw,h:nh,x:nx,y:ny}:w)),[]);
-  const rotateWidget=useCallback((id:string,rotation:number)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,rotation}:w)),[]);
   const updateWidget=useCallback((id:string,data:Record<string,unknown>)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,data}:w)),[]);
   const deleteWidget=useCallback((id:string)=>setWidgets(ws=>ws.filter(w=>w.id!==id)),[]);
   const bringForward=useCallback((id:string)=>{setZCounter(z=>{const n=z+1;setWidgets(ws=>ws.map(w=>w.id===id?{...w,z:n}:w));return n;});},[]);
 
-  // ── Stroke transform ops ──────────────────────────────────────────────────
+  // ── Stroke resize op ──────────────────────────────────────────────────────
 
-  // resizeStroke accumulates scale from the *original* bounds on each frame,
-  // so we keep a "resize origin snapshot" in a ref to avoid drift.
-  // Resize/rotate origin snapshots — keyed by stroke id, cleared when selection changes
   const resizeOriginRef=useRef<Map<string,Stroke>>(new Map());
-  const rotateOriginRef=useRef<Map<string,{stroke:Stroke;cx:number;cy:number}>>(new Map());
-  useEffect(()=>{resizeOriginRef.current.clear();rotateOriginRef.current.clear();},[selection]);
+  useEffect(()=>{resizeOriginRef.current.clear();},[selection]);
 
-  // sx/sy are relative to the original bounds — always apply to snapshot to avoid drift
   const handleResizeStroke=useCallback((id:string,sx:number,sy:number,cx:number,cy:number)=>{
     setStrokes(prev=>{
       if(!resizeOriginRef.current.has(id)){
@@ -687,17 +669,10 @@ export function BulletinBoard({weather,timeFormat,tempUnit}:BulletinBoardProps){
     });
   },[]);
 
-  // totalDelta is the full angle from drag-start — apply to snapshot each frame
-  const handleRotateStroke=useCallback((id:string,totalDelta:number,cx:number,cy:number)=>{
-    setStrokes(prev=>{
-      if(!rotateOriginRef.current.has(id)){
-        const orig=prev.find(s=>s.id===id);
-        if(orig)rotateOriginRef.current.set(id,{stroke:{...orig,points:[...orig.points]},cx,cy});
-      }
-      const entry=rotateOriginRef.current.get(id);
-      if(!entry)return prev;
-      return prev.map(s=>s.id===id?rotateStroke(entry.stroke,totalDelta,entry.cx,entry.cy):s);
-    });
+  // ── Label resize op ───────────────────────────────────────────────────────
+
+  const handleResizeLabel=useCallback((id:string,size:number)=>{
+    setLabels(prev=>prev.map(l=>l.id===id?{...l,size}:l));
   },[]);
 
   // ── Selection ops ─────────────────────────────────────────────────────────
@@ -746,6 +721,13 @@ export function BulletinBoard({weather,timeFormat,tempUnit}:BulletinBoardProps){
     if(tool!=="select")clearSelection();
   },[clearSelection]);
 
+  // Auto-switch to select tool and select the widget when clicking one outside select mode
+  const activateSelectOnWidget=useCallback((id:string)=>{
+    setActiveTool("select");
+    setDrawMode(true);
+    setSelection({widgetIds:new Set([id]),strokeIds:new Set(),labelIds:new Set()});
+  },[]);
+
   const exitDrawMode=useCallback(()=>{setDrawMode(false);clearSelection();},[clearSelection]);
 
   const isEraserTool   =activeTool==="eraser";
@@ -770,7 +752,8 @@ export function BulletinBoard({weather,timeFormat,tempUnit}:BulletinBoardProps){
         <WidgetCard key={w.id} widget={w}
           selected={selection.widgetIds.has(w.id)} selectMode={selectMode}
           timeFormat={timeFormat} tempUnit={tempUnit} weather={weather}
-          onChange={updateWidget} onDelete={deleteWidget}/>
+          onChange={updateWidget} onDelete={deleteWidget}
+          onActivateSelect={activateSelectOnWidget}/>
       ))}
 
       {selectMode&&(
@@ -780,10 +763,10 @@ export function BulletinBoard({weather,timeFormat,tempUnit}:BulletinBoardProps){
           onMoveSelected={handleMoveSelected}
           onMoveWidget={moveWidget}
           onResizeWidget={resizeWidget}
-          onRotateWidget={rotateWidget}
           onResizeStroke={handleResizeStroke}
-          onRotateStroke={handleRotateStroke}
-          onBringForward={bringForward}/>
+          onResizeLabel={handleResizeLabel}
+          onBringForward={bringForward}
+          onHandleDragActive={handleHandleDragActive}/>
       )}
 
       {widgets.length===0&&!drawMode&&(
