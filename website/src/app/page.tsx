@@ -161,6 +161,7 @@ export default function Home() {
               opacity:   collapsed ? 1 : 0,
               transform: collapsed ? "translateY(0)" : "translateY(16px)",
               pointerEvents: collapsed ? "all" : "none",
+              visibility: collapsed ? "visible" : "hidden",
             }}
           >
             <BulletinBoard
