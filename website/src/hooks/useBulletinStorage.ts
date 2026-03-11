@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import type { Widget, Stroke, TextLabel } from "../components/BulletinBoard";
 
 const STORAGE_KEY = "hpBulletinBoard";
@@ -13,7 +13,6 @@ interface BoardState {
 const EMPTY: BoardState = { widgets: [], strokes: [], labels: [] };
 
 function loadBoard(): BoardState {
-  // Guard for SSR — localStorage is not available on the server
   if (typeof window === "undefined") return EMPTY;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -35,21 +34,41 @@ function saveBoard(state: BoardState) {
   } catch {}
 }
 
-export function useBulletinStorage() {
-  // Lazy initializers run only on the client (useState(() => fn) is never
-  // called during SSR), so this is safe and avoids the setState-in-effect problem.
-  const [widgets, setWidgets] = useState<Widget[]>(() => loadBoard().widgets);
-  const [strokes, setStrokes] = useState<Stroke[]>(() => loadBoard().strokes);
-  const [labels,  setLabels]  = useState<TextLabel[]>(() => loadBoard().labels);
+type Action =
+  | { type: "load"; payload: BoardState }
+  | { type: "setWidgets"; payload: Widget[] | ((prev: Widget[]) => Widget[]) }
+  | { type: "setStrokes"; payload: Stroke[] | ((prev: Stroke[]) => Stroke[]) }
+  | { type: "setLabels";  payload: TextLabel[] | ((prev: TextLabel[]) => TextLabel[]) };
 
-  const stateRef = useRef<BoardState>({ widgets, strokes, labels });
+function reducer(state: BoardState, action: Action): BoardState {
+  switch (action.type) {
+    case "load":
+      return action.payload;
+    case "setWidgets":
+      return { ...state, widgets: typeof action.payload === "function" ? action.payload(state.widgets) : action.payload };
+    case "setStrokes":
+      return { ...state, strokes: typeof action.payload === "function" ? action.payload(state.strokes) : action.payload };
+    case "setLabels":
+      return { ...state, labels:  typeof action.payload === "function" ? action.payload(state.labels)  : action.payload };
+  }
+}
+
+export function useBulletinStorage() {
+  const [state, dispatch] = useReducer(reducer, EMPTY);
+
+  // Single dispatch after hydration — avoids multiple synchronous setState calls in an effect
+  useEffect(() => {
+    dispatch({ type: "load", payload: loadBoard() });
+  }, []);
+
+  const stateRef = useRef<BoardState>(state);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    stateRef.current = { widgets, strokes, labels };
+    stateRef.current = state;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => saveBoard(stateRef.current), SAVE_DELAY_MS);
-  }, [widgets, strokes, labels]);
+  }, [state]);
 
   useEffect(() => {
     return () => {
@@ -58,5 +77,16 @@ export function useBulletinStorage() {
     };
   }, []);
 
-  return { widgets, setWidgets, strokes, setStrokes, labels, setLabels };
+  const setWidgets = (payload: Widget[] | ((prev: Widget[]) => Widget[])) =>
+    dispatch({ type: "setWidgets", payload });
+  const setStrokes = (payload: Stroke[] | ((prev: Stroke[]) => Stroke[])) =>
+    dispatch({ type: "setStrokes", payload });
+  const setLabels  = (payload: TextLabel[] | ((prev: TextLabel[]) => TextLabel[])) =>
+    dispatch({ type: "setLabels",  payload });
+
+  return {
+    widgets: state.widgets, setWidgets,
+    strokes: state.strokes, setStrokes,
+    labels:  state.labels,  setLabels,
+  };
 }
