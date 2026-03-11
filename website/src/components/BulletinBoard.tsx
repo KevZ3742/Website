@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type React from "react";
 import { NoteWidget, TodoWidget, BookmarkWidget, ClockWidget, WeatherWidget } from "./widgets";
+import { useBulletinStorage } from "../hooks/useBulletinStorage";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -307,7 +308,6 @@ function WidgetCard({widget,selected,selectMode,timeFormat,tempUnit,weather,onCh
   return(
     <div className="absolute group select-none"
       onPointerDown={e=>{
-        // Don't hijack clicks on interactive inner content (inputs, textareas, buttons, links)
         const target=e.target as HTMLElement;
         if(target.closest("input,textarea,button,a,[contenteditable]"))return;
         onActivateSelect(widget.id);
@@ -466,7 +466,6 @@ function SelectOverlay({
       if(m.kind==="resize-label"){
         const{labelId,startPos,origSize,handle}=m;
         const dx=pos[0]-startPos[0],dy=pos[1]-startPos[1];
-        // Pulling toward se/s/e = positive delta = grow; toward nw/n/w = negative delta = grow
         const primary=handle.includes("s")||handle.includes("e")?Math.max(dx,dy):Math.max(-dx,-dy);
         onResizeLabel(labelId,Math.max(8,Math.round(origSize+primary*0.5)));
         return;
@@ -524,7 +523,6 @@ function SelectOverlay({
   return(
     <div ref={overlayRef} className="absolute inset-0" style={{zIndex:50}}>
 
-      {/* Widget resize handles — axis-aligned, no rotation transform */}
       {widgets.filter(w=>selection.widgetIds.has(w.id)).map(w=>(
         <div key={`wh-${w.id}`} className="absolute pointer-events-none"
           style={{left:w.x,top:w.y,width:w.w,height:w.h}}>
@@ -544,7 +542,6 @@ function SelectOverlay({
         </div>
       ))}
 
-      {/* Stroke resize handles */}
       {strokes.filter(s=>selection.strokeIds.has(s.id)).map(s=>{
         const b=strokeBounds(s);
         const pad=10;
@@ -568,7 +565,6 @@ function SelectOverlay({
         );
       })}
 
-      {/* Text label resize handles — all 8, same as widgets/strokes */}
       {labels.filter(l=>selection.labelIds.has(l.id)).map(l=>{
         const b=labelBounds(l);
         const pad=6;
@@ -616,9 +612,14 @@ function ToolBtn({label,icon,active,onClick}:{label:string;icon:string;active:bo
 // ── BulletinBoard ─────────────────────────────────────────────────────────────
 
 export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:externalDragRef}:BulletinBoardProps){
-  const [widgets,    setWidgets]    = useState<Widget[]>([]);
-  const [strokes,    setStrokes]    = useState<Stroke[]>([]);
-  const [labels,     setLabels]     = useState<TextLabel[]>([]);
+  // ── Persisted state (widgets, strokes, labels) ────────────────────────────
+  const {
+    widgets,    setWidgets,
+    strokes,    setStrokes,
+    labels,     setLabels,
+  } = useBulletinStorage();
+
+  // ── Ephemeral UI state ────────────────────────────────────────────────────
   const [drawMode,   setDrawMode]   = useState(false);
   const [activeTool, setActiveTool] = useState<DrawTool>("pen");
   const [drawColor,  setDrawColor]  = useState(PALETTE[0]);
@@ -644,20 +645,20 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
     setZCounter(z=>{w.z=z+1;return z+1;});
     setWidgets(ws=>[...ws,w]);
     setShowAddMenu(false);
-  },[]);
+  },[setWidgets]);
 
-  const moveWidget  =useCallback((id:string,x:number,y:number)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,x,y}:w)),[]);
-  const resizeWidget=useCallback((id:string,nw:number,nh:number,nx:number,ny:number)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,w:nw,h:nh,x:nx,y:ny}:w)),[]);
-  const updateWidget=useCallback((id:string,data:Record<string,unknown>)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,data}:w)),[]);
-  const deleteWidget=useCallback((id:string)=>setWidgets(ws=>ws.filter(w=>w.id!==id)),[]);
-  const bringForward=useCallback((id:string)=>{setZCounter(z=>{const n=z+1;setWidgets(ws=>ws.map(w=>w.id===id?{...w,z:n}:w));return n;});},[]);
+  const moveWidget  =(id:string,x:number,y:number)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,x,y}:w));
+  const resizeWidget=(id:string,nw:number,nh:number,nx:number,ny:number)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,w:nw,h:nh,x:nx,y:ny}:w));
+  const updateWidget=(id:string,data:Record<string,unknown>)=>setWidgets(ws=>ws.map(w=>w.id===id?{...w,data}:w));
+  const deleteWidget=(id:string)=>setWidgets(ws=>ws.filter(w=>w.id!==id));
+  const bringForward=(id:string)=>{setZCounter(z=>{const n=z+1;setWidgets(ws=>ws.map(w=>w.id===id?{...w,z:n}:w));return n;});};
 
   // ── Stroke resize op ──────────────────────────────────────────────────────
 
   const resizeOriginRef=useRef<Map<string,Stroke>>(new Map());
   useEffect(()=>{resizeOriginRef.current.clear();},[selection]);
 
-  const handleResizeStroke=useCallback((id:string,sx:number,sy:number,cx:number,cy:number)=>{
+  const handleResizeStroke=(id:string,sx:number,sy:number,cx:number,cy:number)=>{
     setStrokes(prev=>{
       if(!resizeOriginRef.current.has(id)){
         const orig=prev.find(s=>s.id===id);
@@ -667,32 +668,32 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
       if(!orig)return prev;
       return prev.map(s=>s.id===id?scaleStroke(orig,sx,sy,cx,cy):s);
     });
-  },[]);
+  };
 
   // ── Label resize op ───────────────────────────────────────────────────────
 
-  const handleResizeLabel=useCallback((id:string,size:number)=>{
+  const handleResizeLabel=(id:string,size:number)=>{
     setLabels(prev=>prev.map(l=>l.id===id?{...l,size}:l));
-  },[]);
+  };
 
   // ── Selection ops ─────────────────────────────────────────────────────────
 
-  const clearSelection=useCallback(()=>setSelection({widgetIds:new Set(),strokeIds:new Set(),labelIds:new Set()}),[]);
+  const clearSelection=()=>setSelection({widgetIds:new Set(),strokeIds:new Set(),labelIds:new Set()});
 
-  const handleMoveSelected=useCallback((dx:number,dy:number)=>{
+  const handleMoveSelected=(dx:number,dy:number)=>{
     setStrokes(prev=>prev.map(s=>selection.strokeIds.has(s.id)?{...s,points:s.points.map(([x,y])=>[x+dx,y+dy] as [number,number])}:s));
     setLabels(prev=>prev.map(l=>selection.labelIds.has(l.id)?{...l,x:l.x+dx,y:l.y+dy}:l));
     setWidgets(prev=>prev.map(w=>selection.widgetIds.has(w.id)?{...w,x:w.x+dx,y:w.y+dy}:w));
-  },[selection]);
+  };
 
   // ── Draw ops ──────────────────────────────────────────────────────────────
 
-  const addStroke  =useCallback((s:Stroke)=>setStrokes(prev=>[...prev,s]),[]);
-  const addLabel   =useCallback((l:TextLabel)=>setLabels(prev=>[...prev,l]),[]);
-  const handleErase=useCallback((pts:[number,number][])=>{
+  const addStroke  =(s:Stroke)=>setStrokes(prev=>[...prev,s]);
+  const addLabel   =(l:TextLabel)=>setLabels(prev=>[...prev,l]);
+  const handleErase=(pts:[number,number][])=>{
     setStrokes(prev=>prev.filter(s=>!eraserHitsStroke(pts,s,eraserSize/2+s.width)));
     setLabels(prev=>prev.filter(l=>!eraserHitsText(pts,l,eraserSize/2)));
-  },[eraserSize]);
+  };
 
   // ── Keyboard ─────────────────────────────────────────────────────────────
 
@@ -709,26 +710,25 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
     };
     document.addEventListener("keydown",h);
     return()=>document.removeEventListener("keydown",h);
-  },[selection,clearSelection]);
+  });
 
   // ── Mode ──────────────────────────────────────────────────────────────────
 
   const isSelectTool=activeTool==="select";
   const selectMode  =drawMode&&isSelectTool;
 
-  const enterDrawMode=useCallback((tool:DrawTool)=>{
+  const enterDrawMode=(tool:DrawTool)=>{
     setActiveTool(tool);setDrawMode(true);setShowAddMenu(false);
     if(tool!=="select")clearSelection();
-  },[clearSelection]);
+  };
 
-  // Auto-switch to select tool and select the widget when clicking one outside select mode
-  const activateSelectOnWidget=useCallback((id:string)=>{
+  const activateSelectOnWidget=(id:string)=>{
     setActiveTool("select");
     setDrawMode(true);
     setSelection({widgetIds:new Set([id]),strokeIds:new Set(),labelIds:new Set()});
-  },[]);
+  };
 
-  const exitDrawMode=useCallback(()=>{setDrawMode(false);clearSelection();},[clearSelection]);
+  const exitDrawMode=()=>{setDrawMode(false);clearSelection();};
 
   const isEraserTool   =activeTool==="eraser";
   const isTextTool     =activeTool==="text";
@@ -769,7 +769,7 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
           onHandleDragActive={handleHandleDragActive}/>
       )}
 
-      {widgets.length===0&&!drawMode&&(
+      {widgets.length===0&&strokes.length===0&&labels.length===0&&!drawMode&&(
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
             <p className="text-[11px] text-muted tracking-[0.12em] uppercase">empty board</p>
