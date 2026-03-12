@@ -84,38 +84,6 @@ export const TOOLS: Tool[] = [
     status: "live",
     href: "/tools/rng-toolkit",
   },
-  {
-    id: "uuid-generator",
-    title: "UUID Generator",
-    description: "Generate v1, v4, and v5 UUIDs in bulk. Copy individually or as a newline-separated list. Validate an existing UUID.",
-    tags: ["dev"],
-    status: "coming-soon",
-    href: "/tools/uuid-generator",
-  },
-  {
-    id: "hash-generator",
-    title: "Hash Generator",
-    description: "Compute MD5, SHA-1, SHA-256, and SHA-512 hashes from text or file input. Client-side only — nothing leaves your browser.",
-    tags: ["dev", "security"],
-    status: "coming-soon",
-    href: "/tools/hash-generator",
-  },
-  {
-    id: "css-gradient",
-    title: "CSS Gradient",
-    description: "Visually build linear and radial gradients. Drag stops, tweak angles, and copy the ready-to-use CSS snippet.",
-    tags: ["design", "css"],
-    status: "coming-soon",
-    href: "/tools/css-gradient",
-  },
-  {
-    id: "pomodoro",
-    title: "Pomodoro",
-    description: "A minimal focus timer. 25-minute work sessions, configurable short and long breaks, with desktop notifications.",
-    tags: ["productivity"],
-    status: "coming-soon",
-    href: "/tools/pomodoro",
-  },
 ];
 
 // ── Derived constants ─────────────────────────────────────────────────────────

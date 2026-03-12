@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, JSX } from "react";
 import Link from "next/link";
 import { BUILTIN_THEMES, applyTheme } from "../../../lib/themes";
 import { loadSettings, loadCustomThemes } from "../../../lib/settings";
@@ -22,12 +22,12 @@ function uid() {
 // ── Number Generator ──────────────────────────────────────────────────────────
 
 function NumberGen() {
-  const [min, setMin]       = useState("1");
-  const [max, setMax]       = useState("100");
-  const [count, setCount]   = useState("1");
-  const [unique, setUnique] = useState(false);
+  const [min, setMin]         = useState("1");
+  const [max, setMax]         = useState("100");
+  const [count, setCount]     = useState("1");
+  const [unique, setUnique]   = useState(false);
   const [results, setResults] = useState<number[]>([]);
-  const [error, setError]   = useState("");
+  const [error, setError]     = useState("");
 
   const generate = () => {
     const lo = parseInt(min), hi = parseInt(max), n = parseInt(count);
@@ -72,8 +72,8 @@ function NumberGen() {
       <label className="flex items-center gap-2 cursor-pointer select-none">
         <div onClick={() => setUnique(v => !v)}
           className={`w-8 h-4 border transition-colors relative ${unique ? "border-green bg-green/20" : "border-border2"}`}>
-          <div className={`absolute top-0.5 w-3 h-3 transition-all ${unique ? "left-[18px] bg-green" : "left-0.5 bg-muted"}`}
-            style={{ background: unique ? "var(--green)" : "var(--muted)" }} />
+          <div className="absolute top-0.5 w-3 h-3 transition-all"
+            style={{ left: unique ? "18px" : "2px", background: unique ? "var(--green)" : "var(--muted)" }} />
         </div>
         <span className="text-[10px] text-muted">unique values only</span>
       </label>
@@ -81,7 +81,7 @@ function NumberGen() {
       {error && <p className="text-[10px] text-red-400">{error}</p>}
 
       <button onClick={generate}
-        className="w-full border border-green text-green text-[11px] tracking-[0.1em] py-2 hover:bg-green/10 transition-colors font-mono">
+        className="w-full border border-green text-green text-[11px] tracking-widest py-2 hover:bg-green/10 transition-colors font-mono">
         generate
       </button>
 
@@ -151,7 +151,6 @@ function DiceRoller() {
 
   return (
     <div className="space-y-4">
-      {/* Die picker */}
       <div className="space-y-1">
         <span className="text-[9px] text-muted tracking-[0.08em] uppercase">die type</span>
         <div className="flex gap-1.5 flex-wrap">
@@ -166,7 +165,6 @@ function DiceRoller() {
         </div>
       </div>
 
-      {/* Count + mod */}
       <div className="grid grid-cols-2 gap-2">
         <label className="space-y-1">
           <span className="text-[9px] text-muted tracking-[0.08em] uppercase">number of dice</span>
@@ -193,12 +191,11 @@ function DiceRoller() {
       </div>
 
       <button onClick={roll} disabled={rolling}
-        className={`w-full border text-[11px] tracking-[0.1em] py-2 transition-colors font-mono
+        className={`w-full border text-[11px] tracking-widest py-2 transition-colors font-mono
           ${rolling ? "border-border2 text-muted cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
         {rolling ? "rolling..." : `roll ${count}d${selectedDie}${mod !== 0 ? (mod > 0 ? `+${mod}` : mod) : ""}`}
       </button>
 
-      {/* History */}
       {history.length > 0 && (
         <div className="space-y-1.5">
           <span className="text-[9px] text-muted tracking-[0.08em] uppercase">roll history</span>
@@ -223,9 +220,9 @@ function DiceRoller() {
 // ── Coin Flip ─────────────────────────────────────────────────────────────────
 
 function CoinFlip() {
-  const [result, setResult]   = useState<"heads" | "tails" | null>(null);
+  const [result, setResult]     = useState<"heads" | "tails" | null>(null);
   const [flipping, setFlipping] = useState(false);
-  const [history, setHistory] = useState<("heads"|"tails")[]>([]);
+  const [history, setHistory]   = useState<("heads" | "tails")[]>([]);
 
   const flip = () => {
     setFlipping(true);
@@ -243,7 +240,6 @@ function CoinFlip() {
 
   return (
     <div className="space-y-4">
-      {/* Coin */}
       <div className="flex flex-col items-center gap-4 py-4">
         <div className={`w-24 h-24 border-2 rounded-full flex items-center justify-center transition-all duration-500 select-none
           ${flipping ? "border-muted animate-spin" : result === "heads" ? "border-green bg-green/10" : result === "tails" ? "border-muted bg-surface" : "border-border2 bg-surface"}`}
@@ -252,7 +248,8 @@ function CoinFlip() {
             <span className="text-[10px] text-muted tracking-widest">···</span>
           ) : result ? (
             <div className="text-center">
-              <div className="text-[11px] tracking-[0.15em] uppercase" style={{ color: result === "heads" ? "var(--green)" : "var(--muted)" }}>
+              <div className="text-[11px] tracking-[0.15em] uppercase"
+                style={{ color: result === "heads" ? "var(--green)" : "var(--muted)" }}>
                 {result === "heads" ? "H" : "T"}
               </div>
             </div>
@@ -268,7 +265,7 @@ function CoinFlip() {
       </div>
 
       <button onClick={flip} disabled={flipping}
-        className={`w-full border text-[11px] tracking-[0.1em] py-2 transition-colors font-mono
+        className={`w-full border text-[11px] tracking-widest py-2 transition-colors font-mono
           ${flipping ? "border-border2 text-muted cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
         {flipping ? "flipping..." : "flip coin"}
       </button>
@@ -281,7 +278,8 @@ function CoinFlip() {
           </div>
           <div className="flex h-1.5 gap-px">
             {history.map((r, i) => (
-              <div key={i} className="flex-1" style={{ background: r === "heads" ? "var(--green)" : "var(--muted)" }} />
+              <div key={i} className="flex-1"
+                style={{ background: r === "heads" ? "var(--green)" : "var(--muted)" }} />
             ))}
           </div>
           <div className="flex flex-wrap gap-1 max-h-16 overflow-hidden">
@@ -300,7 +298,7 @@ function CoinFlip() {
 // ── Card Draw ─────────────────────────────────────────────────────────────────
 
 const SUITS = ["♠", "♥", "♦", "♣"] as const;
-const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"] as const;
+const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"] as const;
 type Suit = typeof SUITS[number];
 type Rank = typeof RANKS[number];
 
@@ -353,7 +351,7 @@ function CardDraw() {
 
       <div className="flex gap-2">
         <button onClick={draw} disabled={deck.length === 0}
-          className={`flex-1 border text-[11px] tracking-[0.1em] py-2 transition-colors font-mono
+          className={`flex-1 border text-[11px] tracking-widest py-2 transition-colors font-mono
             ${deck.length === 0 ? "border-border2 text-dim cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
           {deck.length === 0 ? "deck empty" : "draw card"}
         </button>
@@ -363,17 +361,14 @@ function CardDraw() {
         </button>
       </div>
 
-      {/* Drawn cards */}
       {drawn.length > 0 && (
         <div className="space-y-2">
           <span className="text-[9px] text-muted tracking-[0.08em] uppercase">drawn · {drawn.length} cards</span>
-          {/* Latest draw large */}
           <div className="flex gap-2 flex-wrap">
             {drawn.slice(0, drawCount).map((c, i) => (
               <CardFace key={`${c.rank}-${c.suit}-${i}`} card={c} />
             ))}
           </div>
-          {/* Rest small */}
           {drawn.length > drawCount && (
             <div className="flex gap-1.5 flex-wrap pt-1 border-t border-border">
               {drawn.slice(drawCount).map((c, i) => (
@@ -389,16 +384,17 @@ function CardDraw() {
 
 // ── Spin Wheel ────────────────────────────────────────────────────────────────
 
-function SpinWheel() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [items, setItems]     = useState(["Option A", "Option B", "Option C", "Option D"]);
-  const [newItem, setNewItem] = useState("");
-  const [spinning, setSpinning] = useState(false);
-  const [winner, setWinner]   = useState<string | null>(null);
-  const angleRef              = useRef(0);
-  const rafRef                = useRef<number>(0);
+// Module-level constant — stable reference, no re-renders, no useMemo needed
+const WHEEL_COLORS = ["#4ade80", "#60a5fa", "#f87171", "#facc15", "#e879f9", "#34d399", "#fb923c", "#a78bfa"] as const;
 
-  const COLORS = ["#4ade80","#60a5fa","#f87171","#facc15","#e879f9","#34d399","#fb923c","#a78bfa"];
+function SpinWheel() {
+  const canvasRef               = useRef<HTMLCanvasElement>(null);
+  const [items, setItems]       = useState(["Option A", "Option B", "Option C", "Option D"]);
+  const [newItem, setNewItem]   = useState("");
+  const [spinning, setSpinning] = useState(false);
+  const [winner, setWinner]     = useState<string | null>(null);
+  const angleRef                = useRef(0);
+  const rafRef                  = useRef<number>(0);
 
   const drawWheel = useCallback((angle: number) => {
     const canvas = canvasRef.current;
@@ -415,9 +411,9 @@ function SpinWheel() {
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, r, start, end);
       ctx.closePath();
-      ctx.fillStyle = COLORS[i % COLORS.length] + "20";
+      ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length] + "20";
       ctx.fill();
-      ctx.strokeStyle = COLORS[i % COLORS.length];
+      ctx.strokeStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -425,14 +421,13 @@ function SpinWheel() {
       ctx.translate(cx, cy);
       ctx.rotate(start + slice / 2);
       ctx.textAlign = "right";
-      ctx.fillStyle = COLORS[i % COLORS.length];
+      ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
       ctx.font = `${Math.min(11, 120 / items.length)}px 'JetBrains Mono', monospace`;
       const maxLen = 14;
       ctx.fillText(item.length > maxLen ? item.slice(0, maxLen) + "…" : item, r - 8, 4);
       ctx.restore();
     });
 
-    // Center dot
     ctx.beginPath();
     ctx.arc(cx, cy, 5, 0, Math.PI * 2);
     ctx.fillStyle = "var(--bg)";
@@ -440,7 +435,7 @@ function SpinWheel() {
     ctx.strokeStyle = "var(--green)";
     ctx.lineWidth = 1;
     ctx.stroke();
-  }, [items, COLORS]);
+  }, [items]); // WHEEL_COLORS is now stable (module-level constant)
 
   useEffect(() => { drawWheel(angleRef.current); }, [drawWheel]);
 
@@ -448,7 +443,7 @@ function SpinWheel() {
     if (spinning || items.length < 2) return;
     setSpinning(true);
     setWinner(null);
-    const totalRotation = (Math.PI * 2 * (8 + Math.random() * 8));
+    const totalRotation = Math.PI * 2 * (8 + Math.random() * 8);
     const duration = 4000;
     const start = performance.now();
     const startAngle = angleRef.current;
@@ -487,23 +482,19 @@ function SpinWheel() {
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
-        {/* Canvas */}
         <div className="relative shrink-0">
-          <canvas ref={canvasRef} width={200} height={200}
-            className="border border-border" />
-          {/* Pointer */}
+          <canvas ref={canvasRef} width={200} height={200} className="border border-border" />
           <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0"
             style={{ borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderRight: "10px solid var(--green)" }} />
         </div>
 
-        {/* Items list */}
         <div className="flex-1 space-y-1.5 min-w-0">
           <span className="text-[9px] text-muted tracking-[0.08em] uppercase">items</span>
           <div className="space-y-1 max-h-36 overflow-y-auto">
             {items.map((item, i) => (
               <div key={i} className="flex items-center gap-1.5 group">
                 <div className="w-2 h-2 shrink-0 border"
-                  style={{ borderColor: COLORS[i % COLORS.length], background: COLORS[i % COLORS.length] + "30" }} />
+                  style={{ borderColor: WHEEL_COLORS[i % WHEEL_COLORS.length], background: WHEEL_COLORS[i % WHEEL_COLORS.length] + "30" }} />
                 <span className="flex-1 text-[10px] text-muted font-mono truncate">{item}</span>
                 <button onClick={() => removeItem(i)}
                   className="text-[10px] text-muted opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all">×</button>
@@ -522,14 +513,14 @@ function SpinWheel() {
       </div>
 
       <button onClick={spin} disabled={spinning || items.length < 2}
-        className={`w-full border text-[11px] tracking-[0.1em] py-2 transition-colors font-mono
+        className={`w-full border text-[11px] tracking-widest py-2 transition-colors font-mono
           ${spinning || items.length < 2 ? "border-border2 text-dim cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
         {spinning ? "spinning..." : "spin"}
       </button>
 
       {winner && !spinning && (
         <div className="border border-green bg-green/5 px-4 py-3 text-center">
-          <span className="text-[9px] text-muted tracking-[0.1em] uppercase block mb-1">result</span>
+          <span className="text-[9px] text-muted tracking-widest uppercase block mb-1">result</span>
           <span className="text-[15px] text-green font-mono">{winner}</span>
         </div>
       )}
@@ -539,12 +530,14 @@ function SpinWheel() {
 
 // ── Group Generator ───────────────────────────────────────────────────────────
 
+const GROUP_COLORS = ["text-green", "text-blue-400", "text-yellow-400", "text-red-400", "text-purple-400", "text-orange-400"];
+
 function GroupGen() {
-  const [input, setInput]         = useState("Alice\nBob\nCarol\nDave\nEve\nFrank");
+  const [input, setInput]           = useState("Alice\nBob\nCarol\nDave\nEve\nFrank");
   const [groupCount, setGroupCount] = useState(2);
-  const [bySize, setBySize]       = useState(false);
-  const [groupSize, setGroupSize] = useState(3);
-  const [groups, setGroups]       = useState<string[][]>([]);
+  const [bySize, setBySize]         = useState(false);
+  const [groupSize, setGroupSize]   = useState(3);
+  const [groups, setGroups]         = useState<string[][]>([]);
 
   const generate = () => {
     const people = input.split("\n").map(s => s.trim()).filter(Boolean);
@@ -563,8 +556,6 @@ function GroupGen() {
     setGroups(result);
   };
 
-  const GROUP_COLORS = ["text-green", "text-blue-400", "text-yellow-400", "text-red-400", "text-purple-400", "text-orange-400"];
-
   return (
     <div className="space-y-4">
       <div>
@@ -575,18 +566,18 @@ function GroupGen() {
 
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-2 cursor-pointer select-none">
-          <div onClick={() => setBySize(v => !v)}
+          <div onClick={() => setBySize(false)}
             className={`w-8 h-4 border transition-colors relative ${!bySize ? "border-green bg-green/20" : "border-border2"}`}>
-            <div className={`absolute top-0.5 w-3 h-3 transition-all`}
+            <div className="absolute top-0.5 w-3 h-3 transition-all"
               style={{ left: !bySize ? "18px" : "2px", background: !bySize ? "var(--green)" : "var(--muted)" }} />
           </div>
           <span className="text-[10px] text-muted">by count</span>
         </label>
         <span className="text-[10px] text-dim">|</span>
         <label className="flex items-center gap-2 cursor-pointer select-none">
-          <div onClick={() => setBySize(v => !v)}
+          <div onClick={() => setBySize(true)}
             className={`w-8 h-4 border transition-colors relative ${bySize ? "border-green bg-green/20" : "border-border2"}`}>
-            <div className={`absolute top-0.5 w-3 h-3 transition-all`}
+            <div className="absolute top-0.5 w-3 h-3 transition-all"
               style={{ left: bySize ? "18px" : "2px", background: bySize ? "var(--green)" : "var(--muted)" }} />
           </div>
           <span className="text-[10px] text-muted">by size</span>
@@ -618,7 +609,7 @@ function GroupGen() {
       )}
 
       <button onClick={generate}
-        className="w-full border border-green text-green text-[11px] tracking-[0.1em] py-2 hover:bg-green/10 transition-colors font-mono">
+        className="w-full border border-green text-green text-[11px] tracking-widest py-2 hover:bg-green/10 transition-colors font-mono">
         shuffle &amp; group
       </button>
 
@@ -626,7 +617,7 @@ function GroupGen() {
         <div className="grid grid-cols-2 gap-2">
           {groups.map((g, i) => (
             <div key={i} className="border border-border bg-surface p-2.5">
-              <span className={`text-[9px] tracking-[0.1em] uppercase font-mono ${GROUP_COLORS[i % GROUP_COLORS.length]}`}>
+              <span className={`text-[9px] tracking-widest uppercase font-mono ${GROUP_COLORS[i % GROUP_COLORS.length]}`}>
                 group {i + 1} · {g.length}
               </span>
               <ul className="mt-1.5 space-y-0.5">
@@ -645,12 +636,12 @@ function GroupGen() {
 // ── Tab config ────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; desc: string }[] = [
-  { id: "number", label: "number",  desc: "random integers" },
-  { id: "dice",   label: "dice",    desc: "rpg dice roller"  },
-  { id: "coin",   label: "coin",    desc: "heads or tails"   },
-  { id: "cards",  label: "cards",   desc: "draw from deck"   },
-  { id: "wheel",  label: "wheel",   desc: "spin to pick"     },
-  { id: "groups", label: "groups",  desc: "split into teams" },
+  { id: "number", label: "number", desc: "random integers" },
+  { id: "dice",   label: "dice",   desc: "rpg dice roller"  },
+  { id: "coin",   label: "coin",   desc: "heads or tails"   },
+  { id: "cards",  label: "cards",  desc: "draw from deck"   },
+  { id: "wheel",  label: "wheel",  desc: "spin to pick"     },
+  { id: "groups", label: "groups", desc: "split into teams" },
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -668,7 +659,6 @@ export default function RNGToolkitPage() {
 
   return (
     <div className="min-h-screen bg-bg font-mono text-tx">
-      {/* Header */}
       <div className="border-b border-border bg-surface px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-[13px] tracking-[0.15em] uppercase text-tx">rng toolkit</h1>
@@ -681,7 +671,6 @@ export default function RNGToolkitPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-6 space-y-5">
-        {/* Tab bar */}
         <div className="flex flex-wrap gap-1.5">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
@@ -696,7 +685,6 @@ export default function RNGToolkitPage() {
           ))}
         </div>
 
-        {/* Panel */}
         <div className="border border-border2 bg-surface p-5">
           {activeTab === "number" && <NumberGen />}
           {activeTab === "dice"   && <DiceRoller />}
