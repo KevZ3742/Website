@@ -77,6 +77,14 @@ export const TOOLS: Tool[] = [
     href: "/tools/timestamp",
   },
   {
+    id: "rng-toolkit",
+    title: "RNG Toolkit",
+    description: "All-in-one randomness suite. Number generator, RPG dice roller, coin flip, card draws from a full deck, spin wheel, and random group splitter.",
+    tags: ["math", "productivity"],
+    status: "live",
+    href: "/tools/rng-toolkit",
+  },
+  {
     id: "uuid-generator",
     title: "UUID Generator",
     description: "Generate v1, v4, and v5 UUIDs in bulk. Copy individually or as a newline-separated list. Validate an existing UUID.",
