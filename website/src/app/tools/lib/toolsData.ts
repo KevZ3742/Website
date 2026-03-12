@@ -21,14 +21,6 @@ export const TOOLS: Tool[] = [
     href: "/tools/rng-toolkit",
   },
   {
-    id: "diff-viewer",
-    title: "Diff Viewer",
-    description: "Compare two blocks of text line by line. Unified and split view, inline char highlighting, ignore-case/whitespace toggles, and patch export.",
-    tags: ["text", "dev", "productivity"],
-    status: "live",
-    href: "/tools/diff-viewer",
-  },
-  {
     id: "lorem-ipsum",
     title: "Lorem Ipsum",
     description: "Generate placeholder text in multiple flavors — classic lorem, tech jargon, corporate speak, or hipster. Paragraphs, sentences, words, lists, or HTML output.",
