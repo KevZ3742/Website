@@ -461,7 +461,7 @@ function SpinWheel() {
       } else {
         angleRef.current = current % (Math.PI * 2);
         const slice = (2 * Math.PI) / items.length;
-        const norm = ((Math.PI * 1.5 - angleRef.current) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        const norm = ((-angleRef.current) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
         const idx = Math.floor(norm / slice) % items.length;
         setWinner(items[idx]);
         setSpinning(false);
