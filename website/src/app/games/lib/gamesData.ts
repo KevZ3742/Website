@@ -31,6 +31,15 @@ export const GAMES: Game[] = [
     status: "playable",
     href: "/games/exploding-kittens",
   },
+  {
+    id: "chromatch",
+    title: "Chromatch",
+    description: "A hidden sequence of colored balls waits to be cracked. Each turn you swap exactly 2 balls. Use the correct-count feedback to deduce the order — fewest turns wins.",
+    tags: ["puzzle", "solo", "deduction"],
+    players: "1P",
+    status: "playable",
+    href: "/games/chromatch",
+  },
 ];
 
 // ── Derived constants ─────────────────────────────────────────────────────────
