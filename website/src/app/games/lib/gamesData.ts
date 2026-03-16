@@ -40,6 +40,15 @@ export const GAMES: Game[] = [
     status: "playable",
     href: "/games/chromatch",
   },
+  {
+    id: "slide-puzzle",
+    title: "Slide Puzzle",
+    description: "Arrange numbered tiles into order by sliding them into the blank space. Choose 3×3, 4×4, or 5×5 grids. Upload any photo to use it as the puzzle image.",
+    tags: ["puzzle", "solo", "classic"],
+    players: "1P",
+    status: "playable",
+    href: "/games/slide-puzzle",
+  },
 ];
 
 // ── Derived constants ─────────────────────────────────────────────────────────
