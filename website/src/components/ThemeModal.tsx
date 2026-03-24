@@ -230,6 +230,9 @@ export function ThemeModal({
           {/* Swatch grid */}
           <div className="space-y-1.5">
             <div className="flex gap-1.5">
+              <ColorSwatch colorKey="background" value={displayColors["background"]} onChange={handleColorChange} />
+            </div>
+            <div className="flex gap-1.5">
               {(["f_high", "f_med", "f_low", "f_inv"] as (keyof ThemeColors)[]).map(k => (
                 <ColorSwatch key={k} colorKey={k} value={displayColors[k]} onChange={handleColorChange} />
               ))}
