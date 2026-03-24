@@ -32,6 +32,15 @@ export const GAMES: Game[] = [
     href: "/games/exploding-kittens",
   },
   {
+    id: "word-hunt",
+    title: "Word Hunt",
+    description: "Connect adjacent letters on a 4×4 grid to find as many words as possible before the timer runs out. Play solo or race friends in real-time multiplayer.",
+    tags: ["word", "multiplayer", "puzzle"],
+    players: "1–4P",
+    status: "playable",
+    href: "/games/word-hunt",
+  },
+  {
     id: "chromatch",
     title: "Chromatch",
     description: "A hidden sequence of colored balls waits to be cracked. Each turn you swap exactly 2 balls. Use the correct-count feedback to deduce the order — fewest turns wins.",
