@@ -1,9 +1,7 @@
 "use client";
+// src/app/games/page.tsx
 
-import { useEffect } from "react";
 import Link from "next/link";
-import { BUILTIN_THEMES, applyTheme } from "../../lib/themes";
-import { loadSettings, loadCustomThemes } from "../../lib/settings";
 import { GAMES } from "./lib/gamesData";
 import { GameFilters } from "./components/GameFilters";
 import { GameGrid } from "./components/GameGrid";
@@ -14,15 +12,6 @@ export default function GamesPage() {
     query, activeTags, statusFilter, filtered, hasFilters,
     setQuery, toggleTag, setStatusFilter, clearFilters,
   } = useGameFilters();
-
-  // Apply saved theme on mount
-  useEffect(() => {
-    const settings     = loadSettings();
-    const customThemes = loadCustomThemes();
-    const allThemes    = [...BUILTIN_THEMES, ...customThemes];
-    const active       = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
-    applyTheme(active.colors);
-  }, []);
 
   return (
     <div className="min-h-screen bg-bg font-mono text-tx">

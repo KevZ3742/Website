@@ -1,9 +1,8 @@
 "use client";
+// src/app/games/slide-puzzle/page.tsx
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BUILTIN_THEMES, applyTheme } from "../../../lib/themes";
-import { loadSettings, loadCustomThemes } from "../../../lib/settings";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -118,13 +117,8 @@ export default function SlidePuzzlePage() {
   phaseRef.current = phase;
   sizeRef.current  = size;
 
-  // Apply theme
+  // Unlock body scroll (globals.css sets overflow:hidden for the dashboard)
   useEffect(() => {
-    const settings     = loadSettings();
-    const customThemes = loadCustomThemes();
-    const allThemes    = [...BUILTIN_THEMES, ...customThemes];
-    const active       = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
-    applyTheme(active.colors);
     document.body.style.overflow            = "auto";
     document.documentElement.style.overflow = "auto";
     return () => {

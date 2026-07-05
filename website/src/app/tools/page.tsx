@@ -1,9 +1,7 @@
 "use client";
+// src/app/tools/page.tsx
 
-import { useEffect } from "react";
 import Link from "next/link";
-import { BUILTIN_THEMES, applyTheme } from "../../lib/themes";
-import { loadSettings, loadCustomThemes } from "../../lib/settings";
 import { TOOLS } from "./lib/toolsData";
 import { ToolFilters } from "./components/ToolFilters";
 import { ToolGrid } from "./components/ToolGrid";
@@ -14,15 +12,6 @@ export default function ToolsPage() {
     query, activeTags, statusFilter, filtered, hasFilters,
     setQuery, toggleTag, setStatusFilter, clearFilters,
   } = useToolFilters();
-
-  // Apply saved theme on mount
-  useEffect(() => {
-    const settings     = loadSettings();
-    const customThemes = loadCustomThemes();
-    const allThemes    = [...BUILTIN_THEMES, ...customThemes];
-    const active       = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
-    applyTheme(active.colors);
-  }, []);
 
   const liveCount = TOOLS.filter(t => t.status === "live" || t.status === "beta").length;
 

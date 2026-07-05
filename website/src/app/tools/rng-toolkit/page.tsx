@@ -1,9 +1,8 @@
 "use client";
+// src/app/tools/rng-toolkit/page.tsx
 
 import { useEffect, useState, useRef, useCallback, JSX } from "react";
 import Link from "next/link";
-import { BUILTIN_THEMES, applyTheme } from "../../../lib/themes";
-import { loadSettings, loadCustomThemes } from "../../../lib/settings";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -648,14 +647,6 @@ const TABS: { id: Tab; label: string; desc: string }[] = [
 
 export default function RNGToolkitPage() {
   const [activeTab, setActiveTab] = useState<Tab>("number");
-
-  useEffect(() => {
-    const settings     = loadSettings();
-    const customThemes = loadCustomThemes();
-    const allThemes    = [...BUILTIN_THEMES, ...customThemes];
-    const active       = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
-    applyTheme(active.colors);
-  }, []);
 
   return (
     <div className="min-h-screen bg-bg font-mono text-tx">

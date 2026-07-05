@@ -1,9 +1,8 @@
 "use client";
+// src/app/games/chromatch/page.tsx
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { BUILTIN_THEMES, applyTheme } from "../../../lib/themes";
-import { loadSettings, loadCustomThemes } from "../../../lib/settings";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -138,13 +137,8 @@ export default function ChromatchPage() {
   const startTime   = useRef<number>(0);
   const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Apply theme + unlock body scroll (globals.css sets overflow:hidden)
+  // Unlock body scroll (globals.css sets overflow:hidden for the dashboard)
   useEffect(() => {
-    const settings     = loadSettings();
-    const customThemes = loadCustomThemes();
-    const allThemes    = [...BUILTIN_THEMES, ...customThemes];
-    const active       = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
-    applyTheme(active.colors);
     document.body.style.overflow            = "auto";
     document.documentElement.style.overflow = "auto";
     return () => {

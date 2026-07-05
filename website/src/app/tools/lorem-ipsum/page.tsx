@@ -1,9 +1,8 @@
 "use client";
+// src/app/tools/lorem-ipsum/page.tsx
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { BUILTIN_THEMES, applyTheme } from "../../../lib/themes";
-import { loadSettings, loadCustomThemes } from "../../../lib/settings";
 
 // ── Lorem ipsum word banks ────────────────────────────────────────────────────
 
@@ -171,14 +170,6 @@ export default function LoremIpsumPage() {
   const [output,         setOutput]         = useState("");
   const [copied,         setCopied]         = useState(false);
   const [autoGen,        setAutoGen]        = useState(true);
-
-  useEffect(() => {
-    const settings     = loadSettings();
-    const customThemes = loadCustomThemes();
-    const allThemes    = [...BUILTIN_THEMES, ...customThemes];
-    const active       = allThemes.find(t => t.name === settings.themeName) ?? BUILTIN_THEMES[0];
-    applyTheme(active.colors);
-  }, []);
 
   const generate_ = useCallback(() => {
     setOutput(generate(bank, format, count, startWithLorem));
