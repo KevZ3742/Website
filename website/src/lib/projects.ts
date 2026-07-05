@@ -42,6 +42,20 @@ export const PROJECTS: Project[] = [
     ],
   },
   {
+    slug: "kev-dev",
+    title: "kev.dev",
+    period: "Mar 2026 – Present",
+    image: "https://placehold.co/800x600/141615/4a514c?text=kev.dev",
+    imageAlt: "kev.dev homepage screenshot",
+    description:
+      "My everything site — this one. A single hub combining a portfolio, blog, built-in search bar, and a live bulletin board with draggable widgets, alongside a growing suite of browser-based tools (RNG toolkit, Lorem Ipsum generator) and games (Love Letter, Exploding Kittens, Word Hunt, Chromatch, Slide Puzzle). Fully custom-themeable, built and maintained end to end.",
+    tech: ["Next.js", "TypeScript", "Tailwind CSS", "Vercel"],
+    links: [
+      { type: "repo", url: "https://github.com/KevZ3742/Website", label: "GitHub" },
+      { type: "live", url: "https://website-nu-lilac-45.vercel.app/", label: "Live site" },
+    ],
+  },
+  {
     slug: "startx",
     title: "StartX",
     period: "Jun 2025",
