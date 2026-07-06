@@ -23,7 +23,7 @@ export const SEARCH_URLS: Record<Settings["searchEngine"], string> = {
 };
 
 export const QUICK_LINKS = [
-  { label: "resume",   href: "/resume"                        },
+  { label: "resume",   href: "/resume.pdf"                    },
   { label: "projects", href: "/projects"                      },
   { label: "blog",     href: "/blog"                          },
   { label: "tools",    href: "/tools"                         },
