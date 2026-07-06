@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPosts } from "../../lib/blog";
-import { BlogCard } from "../../components/BlogCard";
+import { BlogSearch } from "../../components/BlogSearch";
 
 export const metadata: Metadata = {
   title: "blog — kev.dev",
@@ -38,11 +38,7 @@ export default function BlogIndexPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border">
-            {posts.map((post, i) => (
-              <BlogCard key={post.slug} post={post} index={i} total={posts.length} />
-            ))}
-          </div>
+          <BlogSearch posts={posts} />
         )}
 
         <footer className="py-14 text-center">

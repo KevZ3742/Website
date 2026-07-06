@@ -14,10 +14,11 @@ const POSTS_DIR = path.join(process.cwd(), "content", "blog");
 export interface PostMeta {
   slug:    string;
   title:   string;
-  date:    string;   // ISO date, e.g. "2026-07-05"
+  date:    string;   // "YYYY-MM-DD" or full ISO datetime "YYYY-MM-DDTHH:MM"
   summary: string;
   tags:    string[];
   draft?:  boolean;
+  order?:  number;   // tiebreaker for same-day posts — higher sorts first
   readingTime: string; // e.g. "4 min read"
 }
 
@@ -33,6 +34,23 @@ function readingTimeFor(text: string): string {
 
 function slugFromFilename(filename: string): string {
   return filename.replace(/\.mdx?$/, "");
+}
+
+// YAML auto-parses unquoted dates (e.g. `date: 2026-07-05`) into a JS Date
+// object rather than a string. Normalize either shape back to a plain
+// "YYYY-MM-DD" (or full ISO) string so the rest of this file only ever
+// deals with strings.
+function normalizeDate(raw: unknown): string {
+  if (raw instanceof Date) return raw.toISOString().slice(0, 10);
+  if (typeof raw === "string") return raw;
+  return "";
+}
+
+// Sortable timestamp for a post: real Date if parseable, else the epoch —
+// unparseable/missing dates sink to the bottom rather than crashing.
+function timestampFor(date: string): number {
+  const t = Date.parse(date.includes("T") ? date : `${date}T00:00:00`);
+  return isNaN(t) ? 0 : t;
 }
 
 /** All post slugs (filenames without extension), for generateStaticParams. */
@@ -57,25 +75,46 @@ export function getPostBySlug(slug: string): Post | null {
   return {
     slug,
     title: data.title ?? slug,
-    date: data.date ?? "",
+    date: normalizeDate(data.date),
     summary: data.summary ?? "",
     tags: data.tags ?? [],
     draft: data.draft ?? false,
+    order: typeof data.order === "number" ? data.order : 0,
     readingTime: readingTimeFor(content),
     content,
   };
 }
 
+function sortPosts<T extends { date: string; order?: number }>(posts: T[]): T[] {
+  return [...posts].sort((a, b) => {
+    const byDate = timestampFor(b.date) - timestampFor(a.date);
+    if (byDate !== 0) return byDate;
+    // Same day (or same exact timestamp) — higher `order` shows first.
+    return (b.order ?? 0) - (a.order ?? 0);
+  });
+}
+
 /** Metadata for every non-draft post, newest first. */
 export function getAllPosts(): PostMeta[] {
-  return getAllSlugs()
+  const posts = getAllSlugs()
     .map(slug => getPostBySlug(slug))
     .filter((p): p is Post => p !== null && !p.draft)
     .map((post): PostMeta => {
-      const { slug, title, date, summary, tags, draft, readingTime } = post;
-      return { slug, title, date, summary, tags, draft, readingTime };
-    })
-    .sort((a, b) => (a.date < b.date ? 1 : -1));
+      const { slug, title, date, summary, tags, draft, order, readingTime } = post;
+      return { slug, title, date, summary, tags, draft, order, readingTime };
+    });
+  return sortPosts(posts);
+}
+
+/** The post immediately older and immediately newer than `slug`, for prev/next nav. */
+export function getAdjacentPosts(slug: string): { older: PostMeta | null; newer: PostMeta | null } {
+  const posts = getAllPosts();
+  const i = posts.findIndex(p => p.slug === slug);
+  if (i === -1) return { older: null, newer: null };
+  return {
+    newer: i > 0 ? posts[i - 1] : null,
+    older: i < posts.length - 1 ? posts[i + 1] : null,
+  };
 }
 
 /** All tags in use, for filtering, sorted alphabetically. */

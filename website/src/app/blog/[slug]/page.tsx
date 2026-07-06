@@ -5,8 +5,9 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
-import { getAllPosts, getPostBySlug } from "../../../lib/blog";
+import { getAllPosts, getAdjacentPosts, getPostBySlug } from "../../../lib/blog";
 import { mdxComponents } from "../../../components/BlogProse";
+import { ViewCounter } from "../../../components/ViewCounter";
 
 // Static export needs every dynamic route enumerated up front. Drafts are
 // deliberately excluded — they don't get built into a public page at all
@@ -37,6 +38,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = getPostBySlug(slug);
   if (!post || post.draft) notFound();
 
+  const { older, newer } = getAdjacentPosts(post.slug);
+
   return (
     <div className="fixed inset-0 z-10 overflow-y-auto font-mono">
       {/* Header */}
@@ -45,6 +48,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <h1 className="text-[13px] tracking-[0.15em] uppercase text-tx">blog</h1>
           <p className="text-[10px] text-muted mt-0.5">
             {formatDate(post.date)} · {post.readingTime}
+            <ViewCounter slug={post.slug} />
           </p>
         </div>
         <Link
@@ -87,6 +91,32 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             />
           </div>
         </article>
+
+        {/* ── Prev / next ── */}
+        {(older || newer) && (
+          <nav className="mt-4 pt-8 border-t border-border grid grid-cols-2 gap-4">
+            <div>
+              {older && (
+                <Link href={`/blog/${older.slug}`} className="group block">
+                  <span className="text-[10px] tracking-[0.15em] text-label uppercase">← older</span>
+                  <span className="block mt-1 text-[13px] text-muted group-hover:text-green transition-colors">
+                    {older.title}
+                  </span>
+                </Link>
+              )}
+            </div>
+            <div className="text-right">
+              {newer && (
+                <Link href={`/blog/${newer.slug}`} className="group block">
+                  <span className="text-[10px] tracking-[0.15em] text-label uppercase">newer →</span>
+                  <span className="block mt-1 text-[13px] text-muted group-hover:text-green transition-colors">
+                    {newer.title}
+                  </span>
+                </Link>
+              )}
+            </div>
+          </nav>
+        )}
 
         <footer className="py-14 text-center">
           <Link
