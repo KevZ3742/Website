@@ -32,26 +32,29 @@ const CHANNELS = [
 export default function ContactPage() {
   return (
     <div className="fixed inset-0 z-10 overflow-y-auto font-mono">
-      <div className="max-w-2xl mx-auto px-6 sm:px-8">
-        {/* ── Header ── */}
-        <header className="pt-16 pb-10 border-b border-border">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-[11px] border border-border2 px-2.5 py-0.5 tracking-widest text-muted hover:text-green hover:border-green transition-colors"
-          >
-            <span>⎋</span>back
-          </Link>
-
-          <h1 className="mt-8 text-3xl sm:text-4xl font-semibold tracking-tight text-tx">
-            Contact
-          </h1>
-          <p className="mt-2 text-[12px] text-muted">
-            Feel free to reach out through any of the channels below.
+      {/* Header */}
+      <div className="border-b border-border bg-surface px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-[13px] tracking-[0.15em] uppercase text-tx">contact</h1>
+          <p className="text-[10px] text-muted mt-0.5">
+            email · linkedin · github
           </p>
-        </header>
+        </div>
+        <Link
+          href="/"
+          className="text-[10px] text-muted border border-border2 px-2.5 py-1 hover:text-tx hover:border-muted transition-colors tracking-[0.06em]"
+        >
+          ← home
+        </Link>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-6 sm:px-8 py-6">
+        <p className="text-[13px] text-muted mb-6">
+          Feel free to reach out through any of the channels below.
+        </p>
 
         {/* ── Channels ── */}
-        <div className="py-10 divide-y divide-border">
+        <div className="divide-y divide-border">
           {CHANNELS.map(({ label, value, href, icon: Icon }) => (
             <a
               key={label}

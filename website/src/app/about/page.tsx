@@ -6,6 +6,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "about — kev.dev",
@@ -36,24 +37,33 @@ const FACTS = [
 export default function AboutPage() {
   return (
     <div className="fixed inset-0 z-10 overflow-y-auto font-mono">
-      <div className="max-w-3xl mx-auto px-6 sm:px-8">
-        {/* ── Header ── */}
-        <header className="pt-16 pb-10 border-b border-border">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-[11px] border border-border2 px-2.5 py-0.5 tracking-widest text-muted hover:text-green hover:border-green transition-colors"
-          >
-            <span>⎋</span>back
-          </Link>
-          <h1 className="mt-8 text-3xl sm:text-4xl font-semibold tracking-tight text-tx">
-            About
-          </h1>
-        </header>
+      {/* Header */}
+      <div className="border-b border-border bg-surface px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-[13px] tracking-[0.15em] uppercase text-tx">about</h1>
+          <p className="text-[10px] text-muted mt-0.5">
+            who I am · what I&apos;m up to
+          </p>
+        </div>
+        <Link
+          href="/"
+          className="text-[10px] text-muted border border-border2 px-2.5 py-1 hover:text-tx hover:border-muted transition-colors tracking-[0.06em]"
+        >
+          ← home
+        </Link>
+      </div>
 
+      <div className="max-w-3xl mx-auto px-6 sm:px-8">
         {/* ── Hero / intro ── */}
         <section className="py-12 border-b border-border flex flex-col sm:flex-row gap-8 items-start">
-          <div className="w-28 h-28 border border-border2 bg-surface shrink-0 flex items-center justify-center text-[10px] text-label tracking-widest uppercase">
-            [photo]
+          <div className="w-28 h-28 border border-border2 relative overflow-hidden shrink-0">
+            <Image
+              src="/about-photo.jpg"
+              alt="Kevin Zhang"
+              fill
+              sizes="112px"
+              className="object-cover"
+            />
           </div>
           <div className="flex-1">
             <p className="text-[17px] leading-relaxed text-tx">

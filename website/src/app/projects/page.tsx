@@ -12,26 +12,23 @@ export const metadata: Metadata = {
 export default function ProjectsPage() {
   return (
     <div className="fixed inset-0 z-10 overflow-y-auto font-mono">
-      <div className="max-w-3xl mx-auto px-6 sm:px-8">
-        {/* ── Header ── */}
-        <header className="pt-16 pb-10 border-b border-border">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-[11px] border border-border2 px-2.5 py-0.5 tracking-widest text-muted hover:text-green hover:border-green transition-colors"
-          >
-            <span>⎋</span>back
-          </Link>
+      {/* Header */}
+      <div className="border-b border-border bg-surface px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-[13px] tracking-[0.15em] uppercase text-tx">projects</h1>
+          <p className="text-[10px] text-muted mt-0.5">
+            {PROJECTS.length} selected works
+          </p>
+        </div>
+        <Link
+          href="/"
+          className="text-[10px] text-muted border border-border2 px-2.5 py-1 hover:text-tx hover:border-muted transition-colors tracking-[0.06em]"
+        >
+          ← home
+        </Link>
+      </div>
 
-          <div className="mt-8 flex items-end justify-between gap-4">
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-tx">
-              Projects
-            </h1>
-            <span className="text-[11px] tracking-[0.2em] text-label uppercase pb-1">
-              {String(PROJECTS.length).padStart(2, "0")} selected works
-            </span>
-          </div>
-        </header>
-
+      <div className="max-w-3xl mx-auto px-6 sm:px-8 py-6">
         {/* ── List ── */}
         <div className="divide-y divide-border">
           {PROJECTS.map((project, i) => (
