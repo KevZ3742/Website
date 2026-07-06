@@ -1,0 +1,36 @@
+---
+title: "Welcome to the blog"
+date: "2026-07-05"
+summary: "Kicking off the blog section of kev.dev — what it's for and how it works under the hood."
+tags: ["meta", "nextjs"]
+draft: false
+---
+
+This is the first post on kev.dev's blog — mostly a test of the plumbing,
+but also a quick note on how this section works, in case future-me forgets.
+
+## No database, no accounts
+
+Every post here is just a Markdown/MDX file sitting in `content/blog/`. There's
+no CMS, no login, no API route hitting a database. To publish something new,
+I run:
+
+```
+npm run new-post -- "My New Post Title"
+```
+
+which drops a pre-filled `.mdx` file into `content/blog/` with today's date
+and a `draft: true` flag. I write the post, flip `draft` to `false`, commit,
+and push — the static build picks it up automatically.
+
+## Why this approach
+
+A few reasons this fits better than a full CMS:
+
+- **Zero moving parts.** No auth, no database, nothing that can go down.
+- **Git is the editor history.** Every edit is a commit; rollback is `git revert`.
+- **It's just files.** Easy to back up, easy to search, easy to migrate later
+  if I ever want to.
+
+That's it for post #1 — more soon, probably about whatever I'm building at
+the time.
