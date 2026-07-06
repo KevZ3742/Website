@@ -89,7 +89,7 @@ export default function AboutPage() {
               <div key={i} className="flex gap-5">
                 <span className="w-32 shrink-0 text-[11px] text-label pt-0.5">{t.period}</span>
                 <div className="flex-1 pb-6 border-l border-border pl-5 relative">
-                  <span className="absolute -left-[5px] top-1 w-[9px] h-[9px] rounded-full bg-bg border border-green" />
+                  <span className="absolute -left-1.25 top-1 w-2.25 h-2.25 rounded-full bg-bg border border-green" />
                   <div className="text-[14px] text-tx">{t.title}</div>
                   <div className="text-[12px] text-muted">{t.org}</div>
                   <p className="mt-1.5 text-[12px] text-muted leading-relaxed">{t.note}</p>
