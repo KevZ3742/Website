@@ -125,9 +125,7 @@ export default function AboutPage() {
         <section className="py-10 border-b border-border">
           <h2 className="text-[11px] tracking-[0.15em] uppercase text-dim mb-6">Hobbies</h2>
           <p className="text-[13px] leading-relaxed text-muted max-w-xl">
-            Outside of code, I&apos;m into {HOBBIES}. Coding&apos;s in there too —
-            it&apos;s hard to draw the line between hobby and work at this
-            point.
+            Outside of code, I&apos;m into {HOBBIES}.
           </p>
         </section>
 
