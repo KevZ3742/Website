@@ -913,7 +913,7 @@ export function BulletinBoard({weather,timeFormat,tempUnit,handleDragActiveRef:e
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
             <p className="text-[11px] text-muted tracking-[0.12em] uppercase">empty board</p>
-            <p className="text-[10px] text-dim mt-1">add a widget or start drawing</p>
+            <p className="text-[10px] text-label mt-1">add a widget or start drawing</p>
           </div>
         </div>
       )}

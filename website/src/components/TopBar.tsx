@@ -80,7 +80,7 @@ export function TopBar({
       {/* ── Flexible center area ── */}
       <div className="flex-1 flex items-center justify-center">
         {!collapsed ? (
-          <span className="text-[10px] text-dim tracking-widest">_</span>
+          <span className="text-[10px] text-label tracking-widest">_</span>
         ) : (
           <div className="flex items-center gap-0">
             {/* Left links */}

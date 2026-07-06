@@ -8,6 +8,7 @@
   --text: #c8cdc9;
   --muted: #4a514c;
   --dim: #272b28;
+  --label: #6b756f;
   --green: #4ade80;
   --green-glow: rgba(74, 222, 128, 0.12);
 }
@@ -20,6 +21,7 @@
   --color-tx: var(--text);
   --color-muted: var(--muted);
   --color-dim: var(--dim);
+  --color-label: var(--label);
   --color-green: var(--green);
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }

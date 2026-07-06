@@ -33,7 +33,7 @@ export function GameGrid({ filtered, hasFilters, onClearFilters }: GameGridProps
       ) : (
         <div className="border border-dashed border-border py-16 text-center">
           <p className="text-[11px] text-muted tracking-[0.12em] uppercase">no games found</p>
-          <p className="text-[10px] text-dim mt-1">try a different search or clear filters</p>
+          <p className="text-[10px] text-label mt-1">try a different search or clear filters</p>
           <button
             onClick={onClearFilters}
             className="mt-4 text-[10px] text-muted border border-border2 px-3 py-1.5 hover:text-tx hover:border-muted transition-colors"

@@ -214,7 +214,7 @@ export function ThemeModal({
         {/* Colour editor */}
         <div>
           <label className="block text-[10px] text-muted tracking-[0.08em] mb-2">
-            colours <span className="text-dim">— click a swatch to edit</span>
+            colours <span className="text-label">— click a swatch to edit</span>
           </label>
 
           {/* Preview strip */}
@@ -266,7 +266,7 @@ export function ThemeModal({
             className={`flex-1 text-[10px] tracking-[0.08em] border px-3 py-1.5 transition-colors
               ${isCustom
                 ? "border-red-900 text-red-500 hover:border-red-500 hover:text-red-400"
-                : "border-border2 text-dim cursor-not-allowed"
+                : "border-border2 text-label cursor-not-allowed"
               }`}
           >
             delete
@@ -384,7 +384,7 @@ function HexRow({
       ) : (
         <button
           onClick={() => { setInputValue(value); setEditing(true); }}
-          className="ml-auto text-[9px] text-dim hover:text-tx font-mono transition-colors"
+          className="ml-auto text-[9px] text-label hover:text-tx font-mono transition-colors"
           title="Edit hex"
         >
           {value}

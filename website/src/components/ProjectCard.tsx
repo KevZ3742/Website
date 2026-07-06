@@ -17,7 +17,7 @@ function LinkPill({ link }: { link: ProjectLink }) {
 
   if (link.type === "private" || !link.url) {
     return (
-      <span className={`${shared} border-border2 text-dim cursor-default`}>
+      <span className={`${shared} border-border2 text-label cursor-default`}>
         <LinkGlyph type="private" />
         {link.label}
       </span>
@@ -52,7 +52,7 @@ export function ProjectCard({ project, index, total }: { project: Project; index
       <span className="text-xl sm:text-2xl font-semibold tracking-tight text-green transition-colors group-hover/title:text-tx">
         {project.title}
       </span>
-      <span className="text-[11px] text-dim opacity-0 -translate-x-1 transition-all duration-200 group-hover/title:opacity-100 group-hover/title:translate-x-0">
+      <span className="text-[11px] text-label opacity-0 -translate-x-1 transition-all duration-200 group-hover/title:opacity-100 group-hover/title:translate-x-0">
         ↗
       </span>
     </a>
@@ -78,9 +78,9 @@ export function ProjectCard({ project, index, total }: { project: Project; index
       <div className="flex flex-col min-w-0">
         <div className="flex items-start justify-between gap-4">
           <span className="text-[11px] tracking-[0.2em] text-muted font-mono tabular-nums">
-            {number}<span className="text-dim"> / {totalStr}</span>
+            {number}<span className="text-label"> / {totalStr}</span>
           </span>
-          <span className="text-[11px] tracking-[0.15em] text-dim font-mono uppercase shrink-0">
+          <span className="text-[11px] tracking-[0.15em] text-label font-mono uppercase shrink-0">
             {project.period}
           </span>
         </div>

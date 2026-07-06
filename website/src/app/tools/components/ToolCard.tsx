@@ -34,7 +34,7 @@ export function ToolCard({ tool }: ToolCardProps) {
         {tool.tags.map(tag => (
           <span
             key={tag}
-            className="text-[9px] text-dim tracking-[0.06em] border border-border px-1.5 py-0.5 leading-none"
+            className="text-[9px] text-label tracking-[0.06em] border border-border px-1.5 py-0.5 leading-none"
           >
             {tag}
           </span>

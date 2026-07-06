@@ -105,7 +105,7 @@ export function SettingsPanel({
             style={{ background: activeTheme.colors.background }}
           />
           {activeTheme.display}
-          <span className="text-dim">›</span>
+          <span className="text-label">›</span>
         </button>
       </div>
     </div>

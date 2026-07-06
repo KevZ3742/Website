@@ -235,7 +235,7 @@ export default function LoremIpsumPage() {
                 className={`flex flex-col items-start border px-3 py-1.5 font-mono transition-colors
                   ${format === f ? "border-green text-green bg-green/10" : "border-border2 text-muted hover:text-tx hover:border-muted"}`}>
                 <span className="text-[10px] tracking-[0.06em]">{FORMAT_LABELS[f].label}</span>
-                <span className={`text-[8px] tracking-[0.04em] ${format === f ? "text-green/60" : "text-dim"}`}>
+                <span className={`text-[8px] tracking-[0.04em] ${format === f ? "text-green/60" : "text-label"}`}>
                   {FORMAT_LABELS[f].desc}
                 </span>
               </button>
@@ -320,18 +320,18 @@ export default function LoremIpsumPage() {
                   <ul className="space-y-1 text-[11px] text-muted leading-relaxed">
                     {output.split("\n").filter(Boolean).slice(0, 5).map((item, i) => (
                       <li key={i} className="flex gap-2">
-                        <span className="text-dim shrink-0">·</span>
+                        <span className="text-label shrink-0">·</span>
                         <span>{item}</span>
                       </li>
                     ))}
                     {output.split("\n").filter(Boolean).length > 5 && (
-                      <li className="text-dim text-[9px]">+ {output.split("\n").filter(Boolean).length - 5} more...</li>
+                      <li className="text-label text-[9px]">+ {output.split("\n").filter(Boolean).length - 5} more...</li>
                     )}
                   </ul>
                 ) : (
                   <div className="text-[11px] text-muted leading-relaxed max-h-32 overflow-hidden">
                     {output.split("\n\n")[0]}
-                    {output.split("\n\n").length > 1 && <span className="text-dim"> [...]</span>}
+                    {output.split("\n\n").length > 1 && <span className="text-label"> [...]</span>}
                   </div>
                 )}
               </div>

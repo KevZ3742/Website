@@ -52,7 +52,7 @@ export default function AboutPage() {
 
         {/* ── Hero / intro ── */}
         <section className="py-12 border-b border-border flex flex-col sm:flex-row gap-8 items-start">
-          <div className="w-28 h-28 border border-border2 bg-surface shrink-0 flex items-center justify-center text-[10px] text-dim tracking-widest uppercase">
+          <div className="w-28 h-28 border border-border2 bg-surface shrink-0 flex items-center justify-center text-[10px] text-label tracking-widest uppercase">
             [photo]
           </div>
           <div className="flex-1">
@@ -75,7 +75,7 @@ export default function AboutPage() {
         <section className="py-10 border-b border-border grid grid-cols-2 sm:grid-cols-4 gap-6">
           {FACTS.map(f => (
             <div key={f.label} className="flex flex-col gap-1">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-dim">{f.label}</span>
+              <span className="text-[10px] tracking-[0.15em] uppercase text-label">{f.label}</span>
               <span className="text-[13px] text-tx">{f.value}</span>
             </div>
           ))}
@@ -83,11 +83,11 @@ export default function AboutPage() {
 
         {/* ── Timeline ── */}
         <section className="py-10 border-b border-border">
-          <h2 className="text-[11px] tracking-[0.15em] uppercase text-dim mb-6">Timeline</h2>
+          <h2 className="text-[11px] tracking-[0.15em] uppercase text-label mb-6">Timeline</h2>
           <div className="space-y-6">
             {TIMELINE.map((t, i) => (
               <div key={i} className="flex gap-5">
-                <span className="w-32 shrink-0 text-[11px] text-dim pt-0.5">{t.period}</span>
+                <span className="w-32 shrink-0 text-[11px] text-label pt-0.5">{t.period}</span>
                 <div className="flex-1 pb-6 border-l border-border pl-5 relative">
                   <span className="absolute -left-[5px] top-1 w-[9px] h-[9px] rounded-full bg-bg border border-green" />
                   <div className="text-[14px] text-tx">{t.title}</div>
@@ -101,7 +101,7 @@ export default function AboutPage() {
 
         {/* ── Skills ── */}
         <section className="py-10 border-b border-border">
-          <h2 className="text-[11px] tracking-[0.15em] uppercase text-dim mb-6">Skills</h2>
+          <h2 className="text-[11px] tracking-[0.15em] uppercase text-label mb-6">Skills</h2>
           <div className="grid sm:grid-cols-3 gap-6">
             {SKILLS.map(s => (
               <div key={s.group}>
@@ -123,14 +123,14 @@ export default function AboutPage() {
 
         {/* ── Hobbies ── */}
         <section className="py-10 border-b border-border">
-          <h2 className="text-[11px] tracking-[0.15em] uppercase text-dim mb-6">Hobbies</h2>
+          <h2 className="text-[11px] tracking-[0.15em] uppercase text-label mb-6">Hobbies</h2>
           <p className="text-[13px] leading-relaxed text-muted max-w-xl">
             Outside of code, I&apos;m into {HOBBIES}.
           </p>
         </section>
 
         <footer className="py-14 text-center">
-          <span className="text-[11px] tracking-[0.15em] text-dim uppercase">
+          <span className="text-[11px] tracking-[0.15em] text-label uppercase">
             end of page
           </span>
         </footer>

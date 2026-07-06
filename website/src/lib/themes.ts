@@ -50,6 +50,7 @@ export function applyTheme(colors: ThemeColors) {
   r.style.setProperty("--text",    colors.f_high);
   r.style.setProperty("--muted",   colors.f_low);
   r.style.setProperty("--dim",     colors.b_med);
+  r.style.setProperty("--label",   colors.f_med);
   r.style.setProperty("--green",   colors.b_inv);
   const hex = colors.b_inv.replace("#", "");
   const n   = parseInt(hex.length === 3 ? hex.split("").map(c => c + c).join("") : hex, 16);

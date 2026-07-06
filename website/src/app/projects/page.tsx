@@ -26,7 +26,7 @@ export default function ProjectsPage() {
             <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-tx">
               Projects
             </h1>
-            <span className="text-[11px] tracking-[0.2em] text-dim uppercase pb-1">
+            <span className="text-[11px] tracking-[0.2em] text-label uppercase pb-1">
               {String(PROJECTS.length).padStart(2, "0")} selected works
             </span>
           </div>
@@ -40,7 +40,7 @@ export default function ProjectsPage() {
         </div>
 
         <footer className="py-14 text-center">
-          <span className="text-[11px] tracking-[0.15em] text-dim uppercase">
+          <span className="text-[11px] tracking-[0.15em] text-label uppercase">
             end of list
           </span>
         </footer>

@@ -65,7 +65,7 @@ export default function ContactPage() {
                   <Icon className="w-4 h-4" />
                 </span>
                 <div className="flex flex-col leading-snug">
-                  <span className="text-[11px] tracking-[0.15em] uppercase text-dim">
+                  <span className="text-[11px] tracking-[0.15em] uppercase text-label">
                     {label}
                   </span>
                   <span className="text-[15px] text-tx group-hover:text-green transition-colors">
@@ -73,13 +73,13 @@ export default function ContactPage() {
                   </span>
                 </div>
               </div>
-              <ExternalIcon className="w-3.5 h-3.5 text-dim group-hover:text-green transition-colors shrink-0" />
+              <ExternalIcon className="w-3.5 h-3.5 text-label group-hover:text-green transition-colors shrink-0" />
             </a>
           ))}
         </div>
 
         <footer className="py-14 text-center">
-          <span className="text-[11px] tracking-[0.15em] text-dim uppercase">
+          <span className="text-[11px] tracking-[0.15em] text-label uppercase">
             end of list
           </span>
         </footer>

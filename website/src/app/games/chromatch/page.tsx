@@ -301,7 +301,7 @@ export default function ChromatchPage() {
                         ? "border-green text-green bg-green/10"
                         : "border-border2 text-muted hover:text-tx hover:border-muted"}`}>
                     <span className="text-[11px] tracking-[0.06em]">{DIFFICULTIES[d].label}</span>
-                    <span className={`text-[9px] ${difficulty === d ? "text-green/60" : "text-dim"}`}>{DIFFICULTIES[d].desc}</span>
+                    <span className={`text-[9px] ${difficulty === d ? "text-green/60" : "text-label"}`}>{DIFFICULTIES[d].desc}</span>
                   </button>
                 ))}
               </div>
@@ -370,7 +370,7 @@ export default function ChromatchPage() {
                         <span className="text-[16px] text-muted">?</span>
                       )}
                     </div>
-                    <span className="text-[9px] text-dim">{i + 1}</span>
+                    <span className="text-[9px] text-label">{i + 1}</span>
                   </div>
                 ))}
               </div>
@@ -405,7 +405,7 @@ export default function ChromatchPage() {
                       isCorrect={player[i] === hidden[i]}
                       onClick={() => handleBallClick(i)}
                     />
-                    <span className="text-[9px] text-dim">{i + 1}</span>
+                    <span className="text-[9px] text-label">{i + 1}</span>
                   </div>
                 ))}
               </div>
@@ -477,7 +477,7 @@ export default function ChromatchPage() {
                   </button>
                 ))}
               </div>
-              <span className="text-[9px] text-dim">(takes effect on next game)</span>
+              <span className="text-[9px] text-label">(takes effect on next game)</span>
             </div>
 
           </div>

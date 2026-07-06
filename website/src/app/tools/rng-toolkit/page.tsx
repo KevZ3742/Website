@@ -203,7 +203,7 @@ function DiceRoller() {
               ${i === 0 ? "border-green bg-green/5" : "border-border bg-surface"}`}>
               <div className="flex items-center gap-2">
                 <span className="text-[9px] text-muted font-mono">{r.count}d{r.die}{r.mod !== 0 ? (r.mod > 0 ? `+${r.mod}` : r.mod) : ""}</span>
-                <span className="text-[9px] text-dim">[{r.rolls.join(", ")}]</span>
+                <span className="text-[9px] text-label">[{r.rolls.join(", ")}]</span>
               </div>
               <span className={`text-[15px] font-mono tabular-nums ${i === 0 ? "text-green" : "text-tx"}`}>
                 {total(r)}
@@ -253,7 +253,7 @@ function CoinFlip() {
               </div>
             </div>
           ) : (
-            <span className="text-[10px] text-dim tracking-wider">flip</span>
+            <span className="text-[10px] text-label tracking-wider">flip</span>
           )}
         </div>
         {result && !flipping && (
@@ -351,7 +351,7 @@ function CardDraw() {
       <div className="flex gap-2">
         <button onClick={draw} disabled={deck.length === 0}
           className={`flex-1 border text-[11px] tracking-widest py-2 transition-colors font-mono
-            ${deck.length === 0 ? "border-border2 text-dim cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
+            ${deck.length === 0 ? "border-border2 text-label cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
           {deck.length === 0 ? "deck empty" : "draw card"}
         </button>
         <button onClick={reset}
@@ -513,7 +513,7 @@ function SpinWheel() {
 
       <button onClick={spin} disabled={spinning || items.length < 2}
         className={`w-full border text-[11px] tracking-widest py-2 transition-colors font-mono
-          ${spinning || items.length < 2 ? "border-border2 text-dim cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
+          ${spinning || items.length < 2 ? "border-border2 text-label cursor-not-allowed" : "border-green text-green hover:bg-green/10"}`}>
         {spinning ? "spinning..." : "spin"}
       </button>
 
@@ -572,7 +572,7 @@ function GroupGen() {
           </div>
           <span className="text-[10px] text-muted">by count</span>
         </label>
-        <span className="text-[10px] text-dim">|</span>
+        <span className="text-[10px] text-label">|</span>
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <div onClick={() => setBySize(true)}
             className={`w-8 h-4 border transition-colors relative ${bySize ? "border-green bg-green/20" : "border-border2"}`}>
@@ -671,7 +671,7 @@ export default function RNGToolkitPage() {
                   : "border-border2 text-muted hover:text-tx hover:border-muted"
                 }`}>
               <span className="text-[10px] tracking-[0.06em]">{t.label}</span>
-              <span className={`text-[8px] tracking-[0.04em] ${activeTab === t.id ? "text-green/60" : "text-dim"}`}>{t.desc}</span>
+              <span className={`text-[8px] tracking-[0.04em] ${activeTab === t.id ? "text-green/60" : "text-label"}`}>{t.desc}</span>
             </button>
           ))}
         </div>

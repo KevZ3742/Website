@@ -20,8 +20,8 @@ export function ClockDisplay({ now, timeFormat }: ClockDisplayProps) {
   return (
     <div className="text-center">
       <div className="text-[clamp(3rem,10vw,7rem)] font-light text-tx tracking-[-0.03em] leading-none tabular-nums">
-        {h}<span className="text-dim mx-0.5">:</span>
-        {m}<span className="text-dim mx-0.5">:</span>
+        {h}<span className="text-label mx-0.5">:</span>
+        {m}<span className="text-label mx-0.5">:</span>
         <span className="text-muted">{s}</span>
         {timeFormat === "12h" && now && (
           <span className="text-muted ml-2" style={{ fontSize: "0.35em" }}>{ap}</span>

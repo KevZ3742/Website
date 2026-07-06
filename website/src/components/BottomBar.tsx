@@ -68,7 +68,7 @@ export function BottomBar({ weather, weatherErr, now, settings, saveSettings }: 
         <span className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green" />online
         </span>
-        <span className="text-dim">{tz}</span>
+        <span className="text-label">{tz}</span>
       </div>
     </div>
   );

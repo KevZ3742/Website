@@ -301,9 +301,9 @@ export default function SlidePuzzlePage() {
               ) : (
                 <div className="flex items-center gap-2 text-[10px] text-muted">
                   <span className="text-tx tabular-nums">{size}×{size}</span>
-                  <span className="text-dim">·</span>
+                  <span className="text-label">·</span>
                   <span>{size * size - 1} tiles</span>
-                  <span className="text-dim">·</span>
+                  <span className="text-label">·</span>
                   <span className={
                     size <= 3 ? "text-green" :
                     size <= 4 ? "text-tx" :
@@ -313,7 +313,7 @@ export default function SlidePuzzlePage() {
                 </div>
               )}
             </div>
-            <p className="text-[9px] text-dim">any grid from {MIN_SIZE}×{MIN_SIZE} up to {MAX_SIZE}×{MAX_SIZE}</p>
+            <p className="text-[9px] text-label">any grid from {MIN_SIZE}×{MIN_SIZE} up to {MAX_SIZE}×{MAX_SIZE}</p>
           </div>
 
           {/* Image upload */}
@@ -337,7 +337,7 @@ export default function SlidePuzzlePage() {
               {imageError && <span className="text-[9px] text-red-400">failed to load image</span>}
             </div>
             {!imageUrl && (
-              <p className="text-[9px] text-dim">no image → numbered tiles. upload any photo to use it as the puzzle.</p>
+              <p className="text-[9px] text-label">no image → numbered tiles. upload any photo to use it as the puzzle.</p>
             )}
           </div>
 
@@ -346,7 +346,7 @@ export default function SlidePuzzlePage() {
             disabled={!!sizeError}
             className={`w-full border text-[11px] tracking-widest py-3 transition-colors font-mono
               ${sizeError
-                ? "border-border2 text-dim cursor-not-allowed"
+                ? "border-border2 text-label cursor-not-allowed"
                 : "border-green text-green hover:bg-green/10"}`}>
             {phase === "idle" ? "start game" : "new game"}
           </button>
@@ -520,7 +520,7 @@ export default function SlidePuzzlePage() {
             {/* Hint */}
             {phase === "playing" && (
               <div className="flex justify-center">
-                <span className="text-[9px] text-dim tracking-[0.06em]">
+                <span className="text-[9px] text-label tracking-[0.06em]">
                   click tiles adjacent to blank · or use ← → ↑ ↓ arrow keys
                 </span>
               </div>
