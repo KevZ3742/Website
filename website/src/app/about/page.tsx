@@ -73,10 +73,11 @@ export default function AboutPage() {
             </p>
             <p className="mt-4 text-[13px] leading-relaxed text-muted">
               Right now I&apos;m splitting time between the Public Policy
-              Research Institute and NextCreator, and building out this site
-              as a place to put everything else I make. I&apos;m open to
-              internships, collabs, and freelance work — feel free to reach
-              out.
+              Research Institute and NextCreator. kev.dev is my everything
+              site — portfolio, blog, a growing set of useful tools, games,
+              and whatever else I end up building, all in one place.
+              I&apos;m open to internships, collabs, and freelance work —
+              feel free to reach out.
             </p>
           </div>
         </section>
