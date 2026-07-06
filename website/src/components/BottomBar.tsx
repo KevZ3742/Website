@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import Link from "next/link";
 import type { WeatherData } from "../hooks/useWeather";
 import type { Settings } from "../lib/settings";
 
@@ -25,8 +26,8 @@ export function BottomBar({ weather, weatherErr, now, settings, saveSettings }: 
   [settings, saveSettings]);
 
   return (
-    <div className="flex items-center justify-between px-5 border-t border-border bg-surface relative z-10 text-[11px] text-muted">
-      <div className="flex items-center gap-3">
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center px-5 border-t border-border bg-surface relative z-10 text-[11px] text-muted">
+      <div className="flex items-center gap-3 justify-self-start">
         {weather ? (
           <button
             onClick={toggleTempUnit}
@@ -48,7 +49,22 @@ export function BottomBar({ weather, weatherErr, now, settings, saveSettings }: 
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 justify-self-center">
+        <Link
+          href="/about"
+          className="text-[10px] tracking-[0.06em] text-muted border border-border2 px-2.5 py-0.5 hover:text-green hover:border-green transition-colors"
+        >
+          about
+        </Link>
+        <Link
+          href="/contact"
+          className="text-[10px] tracking-[0.06em] text-muted border border-border2 px-2.5 py-0.5 hover:text-green hover:border-green transition-colors"
+        >
+          contact
+        </Link>
+      </div>
+
+      <div className="flex items-center gap-4 justify-self-end">
         <span className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green" />online
         </span>
