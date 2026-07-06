@@ -1,16 +1,86 @@
 ---
 title: "Everything Site Major Updates"
 date: "2026-07-05"
-summary: "One or two sentences describing the post — shows up on the blog index."
-tags: []
+summary: "A COMM 205 eportfolio assignment turned out to be the perfect excuse to stop neglecting this site and finally build out everything it had been missing — blog, projects, resume, and more."
+tags: ["meta", "comm205", "nextjs"]
 draft: false
 ---
 
-Start writing here. This body is MDX, so regular Markdown works
-(**bold**, _italics_, lists, code blocks, > blockquotes, images, tables via
-GFM), and you can drop in React components later if you need something
-custom.
+Funny how a class assignment can be the push you actually needed. This
+site had been sitting mostly untouched for a bit — tools page up to
+date, games page fine, but otherwise dormant. Then my COMM 205 class
+assigned an eportfolio project, and it gave me a good reason to actually
+sit down and work on kev.dev again.
 
-Set `draft: true` in the frontmatter above to keep a post out of the
-index and out of the static build entirely; flip it to `false` (or
-remove it) when you're ready to publish.
+## The assignment
+
+The default version of this assignment is pretty prescriptive: sign up
+for a free Wix account, pick a template, and build out four pages — Home,
+About, Contact, Projects — to showcase your work as a technical
+communicator over the semester.
+
+Well... I already had this site. So
+before spinning up a whole separate Wix site, I emailed my professor to
+ask three things:
+
+- Am I locked into Wix, given that I had experiance with custom tech stacks?
+- Can I build onto an existing site instead of starting from scratch?
+- Is there room for creative freedom, or should I follow the instructions to the T?
+
+The answer back was straightforward: no restriction to Wix, building on
+an existing site is fine as long as the coursework ends up there, and
+creative freedom is welcome as long as the minimum requirements are met.
+That was all the green light I needed.
+
+## What I actually built
+
+Rather than duplicate a Home, About, Contact, Projects structure,
+I used the assignment as the excuse to fill out a bunch of pages and
+features kev.dev had been *claiming* to have for a while but never
+actually shipped: about, contact, projects, resume, and the blog.
+
+Two of those — about and contact — exist mostly because the rubric
+required them. I don't hate having them, but if the assignment hadn't
+forced my hand, they probably would've kept sitting on the backlog a
+while longer. Everything else — projects, resume, and especially the
+blog — was stuff I already wanted to build for myself; the assignment
+just moved the timeline up.
+
+I also skipped the traditional "Home" page entirely. The way the
+assignment describes it, Home is basically supposed to introduce you
+and frame the rest of the site — which, functionally, is just an About
+page with extra steps. So instead I built an actual start page: a
+proper landing point for the site with its own identity, rather than a
+worse version of About wearing a different label.
+
+The blog ended up being the biggest single piece of work, so it gets
+its own rundown. A few things came out of that pass:
+
+- **A real file-based blog.** Every post is just an MDX file with
+  frontmatter — no database, no accounts, no admin panel. Write a file,
+  flip `draft: false`, push.
+- **A scaffold script** (`npm run new-post -- "Title"`) that spins up a
+  new dated post file so I'm not hand-writing frontmatter every time.
+- **Search**, right in the blog page's own header, filtering posts by
+  title, tag, or summary as you type.
+- **Older/newer navigation** between posts, so reading one flows
+  naturally into the next.
+- **A view count** on each post, sourced from a small free counter
+  service — nothing fancy, but a nice bit of feedback loop.
+- **Explicit ordering** for posts published the same day, so I'm not at
+  the mercy of arbitrary file-system ordering when I ship more than one
+  thing in a day (like today).
+
+None of it needed a login system or a server — this is still a fully
+static export, same as the rest of the site. Same goes for projects,
+resume, about, and contact: no databases, no forms hitting some
+backend I have to maintain, just static pages doing their job.
+
+## Where this is headed
+
+The COMM 205 coursework — analogy paper, FAQ paper, podcast, slidesets —
+will live under the Projects section rather than forcing a redundant
+parallel site into existence. And now that the site actually has a real
+projects page, a real resume, and a real blog instead of dead links in
+the nav, I've got somewhere to keep putting whatever else I end up
+building here — coursework or otherwise.

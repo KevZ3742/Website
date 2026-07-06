@@ -3,6 +3,7 @@ title: "Welcome to the blog"
 date: "2026-07-05"
 summary: "Kicking off the blog section of kev.dev — what it's for and how it works under the hood."
 tags: ["meta", "nextjs"]
+order: -1
 draft: false
 ---
 
@@ -22,6 +23,11 @@ npm run new-post -- "My New Post Title"
 which drops a pre-filled `.mdx` file into `content/blog/` with today's date
 and a `draft: true` flag. I write the post, flip `draft` to `false`, commit,
 and push — the static build picks it up automatically.
+
+Posts are sorted by date, newest first. If I ever publish more than one on
+the same day, there's an optional `order` field in the frontmatter —
+higher numbers show up first among posts sharing a date, so I'm not stuck
+relying on whatever order the filesystem happens to hand back.
 
 ## Why this approach
 

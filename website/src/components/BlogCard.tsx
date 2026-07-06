@@ -1,6 +1,7 @@
 // src/components/BlogCard.tsx
 import Link from "next/link";
 import type { PostMeta } from "../lib/blog";
+import { ViewCount } from "./ViewCounter";
 
 function formatDate(iso: string): string {
   if (!iso) return "";
@@ -21,6 +22,7 @@ export function BlogCard({ post, index, total }: { post: PostMeta; index: number
         </span>
         <span className="text-[11px] tracking-[0.15em] text-label font-mono uppercase shrink-0">
           {formatDate(post.date)} · {post.readingTime}
+          <ViewCount slug={post.slug} />
         </span>
       </div>
 
